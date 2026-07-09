@@ -26,7 +26,21 @@ npm run dev     # localhost:5173/tochine/
 npm run build
 ```
 
-main に push すると GitHub Actions が GitHub Pages へ自動デプロイする。
+## デプロイ（現在は手動・gh-pagesブランチ方式）
+
+```bash
+npm run build
+cd dist
+git init -b gh-pages && git add -A && git commit -m "deploy"
+git push https://github.com/wandererharu-sudo/tochine.git gh-pages --force
+cd .. && rm -rf dist/.git
+```
+
+※本当は `.github/workflows/deploy.yml`（作成済み・未push）で main push → 自動デプロイにしたいが、
+gh の OAuth トークンに workflow スコープが無く push できなかった。
+`gh auth refresh -h github.com -s workflow` を実行してスコープを足せば、
+`git add .github && git commit && git push` で自動デプロイに切り替えられる
+（その後 Pages の Source を「GitHub Actions」に変更）。
 
 ## 年次更新手順（データの入れ替え）
 
