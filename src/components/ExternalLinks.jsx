@@ -13,10 +13,6 @@ export default function ExternalLinks({ lat, lon }) {
       href: 'https://www.chikamap.jp/',
       label: '全国地価マップ（固定資産税路線価の正確な確認・住所で検索）',
     },
-    {
-      href: 'https://www.rosenka.nta.go.jp/',
-      label: '国税庁 路線価図（相続税路線価の正式な確認）',
-    },
   ]
   return (
     <section className="card">

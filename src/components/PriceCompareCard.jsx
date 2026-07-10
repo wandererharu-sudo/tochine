@@ -1,12 +1,4 @@
-import { evaluate, formatYen, tsuboToM2 } from '../lib/tax'
-
-// ①土地値判定: 販売価格と土地値（時価目安）を比べて買値の妥当性を判定
-function judge(ratio) {
-  if (ratio <= 0.8) return { mark: '◎', label: '土地値の8割以下', cls: 'good' }
-  if (ratio <= 1.0) return { mark: '○', label: '土地値以下', cls: 'ok' }
-  if (ratio <= 1.2) return { mark: '△', label: '土地値近辺', cls: 'soso' }
-  return { mark: '×', label: '土地値超え', cls: 'bad' }
-}
+import { evaluate, formatYen, tsuboToM2, judge } from '../lib/tax'
 
 export default function PriceCompareCard({ point, area, unit, price, onPriceChange }) {
   const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0

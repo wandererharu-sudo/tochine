@@ -188,6 +188,144 @@
   border: 1px solid #c5d0c8;
 }
 
+/* 緯度経度表示 */
+.latlon {
+  font-size: 0.8rem;
+  color: #6a7a6e;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.copy-btn {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border: 1px solid #c5d0c8;
+  border-radius: 12px;
+  background: #f7faf7;
+  color: #35524a;
+  cursor: pointer;
+}
+
+/* 地図 */
+.map-card {
+  padding-bottom: 10px;
+}
+.map {
+  height: 300px;
+  border-radius: 10px;
+  z-index: 0;
+}
+.flag-icon {
+  font-size: 26px;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.num-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: bold;
+  font-size: 13px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.num-icon.koji {
+  background: #35524a;
+}
+.num-icon.chosa {
+  background: #7a6a3a;
+}
+.num-icon.active {
+  background: #b3261e;
+}
+
+/* 国税庁 路線価図リンク */
+.rosenka-town {
+  margin: 4px 0 8px;
+  font-size: 0.92rem;
+}
+.rosenka-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.rosenka-pdf {
+  display: inline-block;
+  padding: 10px 14px;
+  min-height: 24px;
+  border: 1px solid #35524a;
+  border-radius: 8px;
+  background: #f7faf7;
+  color: #35524a;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+.rosenka-pdf:hover {
+  background: #e8f0e9;
+}
+
+/* 保存ボタン・保存リスト */
+.save-btn {
+  width: 100%;
+  padding: 12px;
+  min-height: 44px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  border: 1px solid #35524a;
+  border-radius: 8px;
+  background: #35524a;
+  color: #fff;
+  cursor: pointer;
+}
+.judge-badge {
+  font-size: 0.85rem;
+  padding: 1px 8px;
+}
+.judge-badge.good {
+  background: #1a7f37;
+}
+.judge-badge.ok {
+  background: #35524a;
+}
+.judge-badge.soso {
+  background: #8a6d1a;
+}
+.judge-badge.bad {
+  background: #b3261e;
+}
+.saved-title {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+.saved-item {
+  margin-bottom: 4px;
+}
+.saved-tools {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.saved-memo {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #dde3dd;
+  border-radius: 8px;
+}
+.saved-del {
+  padding: 8px 12px;
+  border: 1px solid #d0b0ac;
+  border-radius: 8px;
+  background: #fff;
+  color: #a04040;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
 /* 地点リスト */
 .card-head {
   display: flex;

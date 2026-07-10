@@ -15,6 +15,10 @@
 3. ハバースイン距離で最寄り5地点を表示
 4. 選択地点の㎡単価 × 0.7 ＝ 固定資産税評価額の目安 ／ × 0.8 ＝ 相続税路線価の目安
 5. 面積入力で総額と固定資産税・都市計画税の年額概算（住宅用地特例あり/なし）
+6. 地図（Leaflet＋地理院タイル淡色）に検索地点🚩と最寄り地点マーカーを表示
+7. 住所の町丁名を `public/rosenka/{県コード}.json`（scripts/build_rosenka.py が生成）とマッチして、
+   国税庁の該当路線価図PDFへ直行リンク（丁目の漢数字↔算用数字は正規化して照合）
+8. 「保存リスト」で検討物件を localStorage に保存・比較（面積・販売価格・判定・メモ）
 
 すべて**概算**。画地補正なし・宅地のみ有効・時点ズレあり（アプリ内の免責参照）。
 
@@ -31,8 +35,11 @@ npm run build
 ```bash
 npm run build
 cd dist
-git init -b gh-pages && git add -A && git commit -m "deploy"
-git push https://github.com/wandererharu-sudo/tochine.git gh-pages --force
+git init -b gh-pages
+git remote add origin https://github.com/wandererharu-sudo/tochine.git
+git fetch origin gh-pages && git reset --soft FETCH_HEAD   # 既存履歴に継ぎ足し（force不要）
+git add -A && git commit -m "deploy"
+git push origin gh-pages
 cd .. && rm -rf dist/.git
 ```
 
@@ -45,6 +52,19 @@ gh の OAuth トークンに workflow スコープが無く push できなかっ
 ## 年次更新手順（データの入れ替え）
 
 地価公示は毎年3月下旬、地価調査は毎年9月下旬に新年版が公開される。
+
+### 路線価図索引（public/rosenka/）
+
+国税庁の路線価図は毎年7月上旬に新年版（main_rXX）が公開される。
+
+```bash
+python scripts/build_rosenka.py --year r09   # 約8分・全国1,900市区町村を巡回
+```
+
+実行後 `public/rosenka/` の47ファイルが新年版のURLで上書きされるので commit → デプロイ。
+市区町村ページの接頭文字（f34504fr.htm 等）は国税局ごとに違う点に注意（正規表現は対応済み）。
+
+### 地価データ（public/data/）
 
 1. 国土数値情報のダウンロードページで新年版を確認
    - 地価公示: https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-L01-{西暦}.html

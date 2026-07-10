@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AddressSearch from './components/AddressSearch'
 import PointList from './components/PointList'
+import MapPanel from './components/MapPanel'
 import ValuationCard from './components/ValuationCard'
 import PriceCompareCard from './components/PriceCompareCard'
 import TaxCard from './components/TaxCard'
+import RosenkaCard from './components/RosenkaCard'
+import SavedList from './components/SavedList'
 import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
 import { geocode } from './lib/geocode'
@@ -28,7 +31,21 @@ export default function App() {
   const [unit, setUnit] = useState('m2')
   const [price, setPrice] = useState('')
   const [gpsLoading, setGpsLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [savedFlash, setSavedFlash] = useState(false)
+  const [saved, setSaved] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('tochine_saved')) ?? []
+    } catch {
+      return []
+    }
+  })
   const prefCache = useRef({}) // {code: points[]}
+
+  const persistSaved = (list) => {
+    setSaved(list)
+    localStorage.setItem('tochine_saved', JSON.stringify(list))
+  }
 
   useEffect(() => {
     fetch(`${DATA_BASE}index.json`)
@@ -132,6 +149,49 @@ export default function App() {
 
   const current = selectedPoint ?? (nearest && nearest[0]) ?? null
 
+  // 緯度経度をコピー（Googleマップ等にそのまま貼れる形式）
+  const copyLatLon = async () => {
+    try {
+      await navigator.clipboard.writeText(`${location.lat.toFixed(6)}, ${location.lon.toFixed(6)}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* クリップボード不可の環境では表示のみ */ }
+  }
+
+  // ④検討物件の保存（同じ住所は上書き）
+  const saveCurrent = () => {
+    if (!location) return
+    const item = {
+      id: Date.now(),
+      title: location.title,
+      lat: location.lat,
+      lon: location.lon,
+      prefCode,
+      area,
+      unit,
+      price,
+      memo: '',
+      point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p } : null,
+      date: new Date().toISOString().slice(0, 10),
+    }
+    const i = saved.findIndex((s) => s.title === item.title)
+    persistSaved(
+      i >= 0
+        ? saved.map((s, j) => (j === i ? { ...item, id: s.id, memo: s.memo } : s))
+        : [item, ...saved],
+    )
+    setSavedFlash(true)
+    setTimeout(() => setSavedFlash(false), 1500)
+  }
+
+  const loadSavedItem = async (it) => {
+    setArea(it.area ?? '')
+    setUnit(it.unit ?? 'm2')
+    setPrice(it.price ?? '')
+    await handleSelect({ title: it.title, lat: it.lat, lon: it.lon }, it.prefCode ?? null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <div className="app">
       <header className="app-head">
@@ -152,6 +212,12 @@ export default function App() {
       {location && (
         <p className="location-line">
           📍 {location.title}
+          <span className="latlon">
+            {location.lat.toFixed(6)}, {location.lon.toFixed(6)}
+            <button type="button" className="copy-btn" onClick={copyLatLon}>
+              {copied ? '✓ コピー済' : 'コピー'}
+            </button>
+          </span>
           {needPrefSelect && (
             <select
               value=""
@@ -165,6 +231,15 @@ export default function App() {
             </select>
           )}
         </p>
+      )}
+
+      {location && nearest && (
+        <MapPanel
+          location={location}
+          points={nearest}
+          selected={current}
+          onSelect={setSelectedPoint}
+        />
       )}
 
       {nearest && (
@@ -198,8 +273,22 @@ export default function App() {
             onPriceChange={setPrice}
           />
           <TaxCard point={current} area={area} unit={unit} />
+          <button type="button" className="save-btn" onClick={saveCurrent}>
+            {savedFlash ? '✓ 保存しました' : '💾 この土地を保存リストへ'}
+          </button>
         </>
       )}
+
+      {location && prefCode && <RosenkaCard prefCode={prefCode} title={location.title} />}
+
+      <SavedList
+        items={saved}
+        onLoad={loadSavedItem}
+        onDelete={(id) => persistSaved(saved.filter((s) => s.id !== id))}
+        onMemoChange={(id, memo) =>
+          persistSaved(saved.map((s) => (s.id === id ? { ...s, memo } : s)))
+        }
+      />
 
       {location && <ExternalLinks lat={location.lat} lon={location.lon} />}
 

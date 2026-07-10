@@ -24,6 +24,14 @@ export function evaluate(unitPrice, areaM2) {
   }
 }
 
+// ①土地値判定: 販売価格/土地値の比率から買値の妥当性を判定（PriceCompareCard・SavedListで共用）
+export function judge(ratio) {
+  if (ratio <= 0.8) return { mark: '◎', label: '土地値の8割以下', cls: 'good' }
+  if (ratio <= 1.0) return { mark: '○', label: '土地値以下', cls: 'ok' }
+  if (ratio <= 1.2) return { mark: '△', label: '土地値近辺', cls: 'soso' }
+  return { mark: '×', label: '土地値超え', cls: 'bad' }
+}
+
 // 固定資産税・都市計画税の年額概算
 // 住宅用地特例: 200㎡以下は課税標準 1/6（都計税 1/3）、200㎡超の部分は 1/3（都計税 2/3）
 // 非住宅・更地: 特例なし（負担調整措置は未考慮）
