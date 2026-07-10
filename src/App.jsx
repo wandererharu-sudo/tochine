@@ -5,6 +5,8 @@ import MapPanel from './components/MapPanel'
 import ValuationCard from './components/ValuationCard'
 import PriceCompareCard from './components/PriceCompareCard'
 import TaxCard from './components/TaxCard'
+import SashineCard from './components/SashineCard'
+import ZoningCard from './components/ZoningCard'
 import RosenkaCard from './components/RosenkaCard'
 import SavedList from './components/SavedList'
 import ExternalLinks from './components/ExternalLinks'
@@ -16,6 +18,7 @@ import { PREFS, prefCodeFromAddress } from './lib/prefecture'
 import './App.css'
 
 const DATA_BASE = `${import.meta.env.BASE_URL}data/`
+const EMPTY_COSTS = { kaitai: '', zanchi: '', reform: '', safety: '10' } // 指値逆算の初期値（万円・%）
 
 export default function App() {
   const [meta, setMeta] = useState(null)
@@ -32,6 +35,9 @@ export default function App() {
   const [unit, setUnit] = useState('m2')
   const [price, setPrice] = useState('')
   const [rosenkaInput, setRosenkaInput] = useState('') // 路線価図で読んだ実数値（千円/㎡）
+  const [kuiki, setKuiki] = useState('') // 区域区分（手入力・市街化調整区域の警戒用）
+  const [youto, setYouto] = useState('') // 用途地域（手入力）
+  const [costs, setCosts] = useState(EMPTY_COSTS) // 指値逆算の費用入力
   const [gpsLoading, setGpsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
@@ -90,6 +96,9 @@ export default function App() {
     setLocation(cand)
     setSelectedPoint(null)
     setRosenkaInput('') // 場所が変われば前面道路も変わるのでリセット
+    setKuiki('')
+    setYouto('')
+    setCosts(EMPTY_COSTS)
     setError('')
     const code = forcedCode ?? prefCodeFromAddress(cand.title)
     setPrefCode(code)
@@ -174,6 +183,9 @@ export default function App() {
       unit,
       price,
       rosenkaInput,
+      kuiki,
+      youto,
+      costs,
       memo: '',
       point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p } : null,
       date: new Date().toISOString().slice(0, 10),
@@ -194,6 +206,9 @@ export default function App() {
     setPrice(it.price ?? '')
     await handleSelect({ title: it.title, lat: it.lat, lon: it.lon }, it.prefCode ?? null)
     setRosenkaInput(it.rosenkaInput ?? '') // handleSelectがリセットするので後から復元
+    setKuiki(it.kuiki ?? '')
+    setYouto(it.youto ?? '')
+    setCosts(it.costs ?? EMPTY_COSTS)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -265,6 +280,15 @@ export default function App() {
         />
       )}
 
+      {location && (
+        <ZoningCard
+          kuiki={kuiki}
+          youto={youto}
+          onKuikiChange={setKuiki}
+          onYoutoChange={setYouto}
+        />
+      )}
+
       {current && meta && (
         <>
           <ValuationCard
@@ -284,7 +308,22 @@ export default function App() {
             onPriceChange={setPrice}
             actualRosenka={actualRosenka}
           />
-          <TaxCard point={current} area={area} unit={unit} actualRosenka={actualRosenka} />
+          <SashineCard
+            point={current}
+            area={area}
+            unit={unit}
+            price={price}
+            actualRosenka={actualRosenka}
+            costs={costs}
+            onChange={setCosts}
+          />
+          <TaxCard
+            point={current}
+            area={area}
+            unit={unit}
+            actualRosenka={actualRosenka}
+            kuiki={kuiki}
+          />
           <button type="button" className="save-btn" onClick={saveCurrent}>
             {savedFlash ? '✓ 保存しました' : '💾 この土地を保存リストへ'}
           </button>

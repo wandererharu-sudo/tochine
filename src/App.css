@@ -491,6 +491,45 @@
   color: #6a7a6e;
 }
 
+.area-row select {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #c5d0c8;
+  border-radius: 8px;
+  background: #fff;
+  max-width: 100%;
+}
+
+/* 指値逆算の費用入力（テーブル内） */
+.cost-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  font-size: 0.82rem;
+  color: #556055;
+}
+.cost-input input {
+  width: 64px;
+  padding: 6px 8px;
+  font-size: 16px;
+  border: 1px solid #c5d0c8;
+  border-radius: 8px;
+  text-align: right;
+}
+.val-table td.over {
+  color: #b3261e;
+  font-weight: bold;
+}
+
+/* 保存リストの区域区分バッジ */
+.badge.chosei {
+  background: #b3261e;
+}
+.badge.kuiki {
+  background: #7a8a7d;
+}
+
 .val-table {
   width: 100%;
   border-collapse: collapse;

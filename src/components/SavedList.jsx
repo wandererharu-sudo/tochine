@@ -22,6 +22,10 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
                 <span className="point-top">
                   {j && <span className={`badge judge-badge ${j.cls}`}>{j.mark}</span>}
                   <span className="saved-title">{it.title}</span>
+                  {it.kuiki === '市街化調整区域' && <span className="badge chosei">調整区域</span>}
+                  {it.kuiki && it.kuiki !== '市街化調整区域' && (
+                    <span className="badge kuiki">{it.kuiki}</span>
+                  )}
                   <span className="dist">{it.date}</span>
                 </span>
                 <span className="point-addr">

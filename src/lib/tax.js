@@ -38,6 +38,31 @@ export function evaluate(unitPrice, areaM2, actualRosenka = null) {
   }
 }
 
+// 区域区分・用途地域の選択肢（手入力用。自動判定は未対応）
+export const KUIKI_OPTIONS = [
+  '市街化区域',
+  '市街化調整区域',
+  '非線引き区域',
+  '準都市計画区域',
+  '都市計画区域外',
+]
+export const YOUTO_OPTIONS = [
+  '第一種低層住居専用地域',
+  '第二種低層住居専用地域',
+  '第一種中高層住居専用地域',
+  '第二種中高層住居専用地域',
+  '第一種住居地域',
+  '第二種住居地域',
+  '準住居地域',
+  '田園住居地域',
+  '近隣商業地域',
+  '商業地域',
+  '準工業地域',
+  '工業地域',
+  '工業専用地域',
+  '指定なし',
+]
+
 // ①土地値判定: 販売価格/土地値の比率から買値の妥当性を判定（PriceCompareCard・SavedListで共用）
 export function judge(ratio) {
   if (ratio <= 0.8) return { mark: '◎', label: '土地値の8割以下', cls: 'good' }

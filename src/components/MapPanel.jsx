@@ -59,18 +59,23 @@ export default function MapPanel({ location, points, selected, onSelect }) {
     })
   }, [location, points, selected, onSelect])
 
-  // 表示範囲は検索位置・地点群が変わった時だけ調整（地点クリックでは動かさない）
+  // 表示範囲は検索地点を中心に約1km範囲で固定（遠い地点に引っぱられて広域にしない）
+  // 範囲外の地点マーカーは手動で地図を動かせば見える
   useEffect(() => {
     const map = mapRef.current
     if (!map || !location) return
-    const coords = [[location.lat, location.lon], ...(points ?? []).map((p) => [p.lat, p.lon])]
-    map.fitBounds(L.latLngBounds(coords).pad(0.25))
-  }, [location, points])
+    const dLat = 1 / 111 // 緯度1度≒111km → 約1km
+    const dLon = 1 / (111 * Math.cos((location.lat * Math.PI) / 180))
+    map.fitBounds([
+      [location.lat - dLat, location.lon - dLon],
+      [location.lat + dLat, location.lon + dLon],
+    ])
+  }, [location])
 
   if (!location) return null
   return (
     <section className="card map-card">
-      <h2>地図 <span className="sub">🚩=検索地点　番号=近くの公示・調査地点</span></h2>
+      <h2>地図 <span className="sub">🚩=検索地点　番号=公示・調査地点　表示は約1km範囲</span></h2>
       <div ref={divRef} className="map" />
     </section>
   )
