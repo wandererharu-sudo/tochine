@@ -1,11 +1,26 @@
+import { useState } from 'react'
 import { judge, formatYen, tsuboToM2, evaluate } from '../lib/tax'
 
 // ④検討物件の保存・比較リスト（localStorage）
 export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
+  const [copied, setCopied] = useState(false)
   if (!items.length) return null
+  // 賃貸収支シミュレーター（ローカルアプリ）に貼り付けて渡す用
+  const copyForShushi = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(items))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* クリップボード不可の環境では何もしない */ }
+  }
   return (
     <section className="card">
-      <h2>保存した土地 <span className="sub">{items.length}件・タップで再表示</span></h2>
+      <div className="card-head">
+        <h2>保存した土地 <span className="sub">{items.length}件・タップで再表示</span></h2>
+        <button type="button" className="copy-btn" onClick={copyForShushi}>
+          {copied ? '✓ コピー済' : '収支用コピー'}
+        </button>
+      </div>
       <ul className="points">
         {items.map((it) => {
           const areaM2 = it.unit === 'tsubo' ? tsuboToM2(Number(it.area) || 0) : Number(it.area) || 0

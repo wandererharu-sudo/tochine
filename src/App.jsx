@@ -14,7 +14,7 @@ import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
 import { geocode } from './lib/geocode'
 import { nearestPoints } from './lib/geo'
-import { ROSENKA_RATIO, CHOUSEI_DEFAULT } from './lib/tax'
+import { ROSENKA_RATIO, CHOUSEI_DEFAULT, evaluate, taxEstimate, tsuboToM2 } from './lib/tax'
 import { PREFS, prefCodeFromAddress } from './lib/prefecture'
 import './App.css'
 
@@ -190,7 +190,18 @@ export default function App() {
   // ④検討物件の保存（同じ住所は上書き）
   const saveCurrent = () => {
     if (!location) return
+    // 年間固都税の概算も保存しておく（賃貸収支シミュレーターへの引き継ぎ用）
+    const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0
+    let taxYear = null
+    if (adjusted && areaM2 > 0) {
+      const tx = taxEstimate(evaluate(adjusted.p, areaM2, actualRosenka).kotei, areaM2)
+      if (tx) {
+        const noToshikei = kuiki !== '' && kuiki !== '市街化区域'
+        taxYear = noToshikei ? tx.residential.kotei : tx.residential.total
+      }
+    }
     const item = {
+      taxYear,
       id: Date.now(),
       title: location.title,
       lat: location.lat,
