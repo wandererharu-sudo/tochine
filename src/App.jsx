@@ -6,6 +6,7 @@ import ValuationCard from './components/ValuationCard'
 import PriceCompareCard from './components/PriceCompareCard'
 import TaxCard from './components/TaxCard'
 import SashineCard from './components/SashineCard'
+import ChintaiCard from './components/ChintaiCard'
 import ZoningCard from './components/ZoningCard'
 import RosenkaCard from './components/RosenkaCard'
 import SavedList from './components/SavedList'
@@ -19,6 +20,7 @@ import './App.css'
 
 const DATA_BASE = `${import.meta.env.BASE_URL}data/`
 const EMPTY_COSTS = { kaitai: '', zanchi: '', reform: '', safety: '10' } // 指値逆算の初期値（万円・%）
+const EMPTY_CHINTAI = { kakaku: '', yachin: '', shoki: '', keihi: '15' } // 賃貸収支の初期値（万円・%）
 
 export default function App() {
   const [meta, setMeta] = useState(null)
@@ -39,6 +41,7 @@ export default function App() {
   const [youto, setYouto] = useState('') // 用途地域（手入力）
   const [chousei, setChousei] = useState(CHOUSEI_DEFAULT) // 調整区域の減価補正率
   const [costs, setCosts] = useState(EMPTY_COSTS) // 指値逆算の費用入力
+  const [chintai, setChintai] = useState(EMPTY_CHINTAI) // 賃貸収支の入力
   const [gpsLoading, setGpsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
@@ -101,6 +104,7 @@ export default function App() {
     setYouto('')
     setChousei(CHOUSEI_DEFAULT)
     setCosts(EMPTY_COSTS)
+    setChintai(EMPTY_CHINTAI)
     setError('')
     const code = forcedCode ?? prefCodeFromAddress(cand.title)
     setPrefCode(code)
@@ -197,6 +201,7 @@ export default function App() {
       youto,
       chousei,
       costs,
+      chintai,
       memo: '',
       point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p } : null,
       date: new Date().toISOString().slice(0, 10),
@@ -221,6 +226,7 @@ export default function App() {
     setYouto(it.youto ?? '')
     setChousei(it.chousei ?? CHOUSEI_DEFAULT)
     setCosts(it.costs ?? EMPTY_COSTS)
+    setChintai(it.chintai ?? EMPTY_CHINTAI)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -337,6 +343,16 @@ export default function App() {
             unit={unit}
             actualRosenka={actualRosenka}
             kuiki={kuiki}
+          />
+          <ChintaiCard
+            point={adjusted}
+            area={area}
+            unit={unit}
+            actualRosenka={actualRosenka}
+            price={price}
+            kuiki={kuiki}
+            chintai={chintai}
+            onChange={setChintai}
           />
           <button type="button" className="save-btn" onClick={saveCurrent}>
             {savedFlash ? '✓ 保存しました' : '💾 この土地を保存リストへ'}

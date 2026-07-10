@@ -18,6 +18,12 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
               : null
           const priceYen = (Number(it.price) || 0) * 10000
           const j = jika && priceYen > 0 ? judge(priceYen / jika) : null
+          // 賃貸収支が入力済みなら表面利回りも一覧に出す（購入価格が空なら販売価格を使用）
+          const ch = it.chintai
+          const invest =
+            ((Number(ch?.kakaku) || Number(it.price) || 0) + (Number(ch?.shoki) || 0)) * 10000
+          const yachin = (Number(ch?.yachin) || 0) * 10000
+          const omote = yachin > 0 && invest > 0 ? ((yachin * 12) / invest) * 100 : null
           return (
             <li key={it.id}>
               <button type="button" className="point saved-item" onClick={() => onLoad(it)}>
@@ -35,6 +41,7 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
                   {priceYen > 0 && ` ／ 販売 ${formatYen(priceYen)}`}
                   {jika && ` ／ 土地値 ${formatYen(Math.round(jika))}`}
                   {j && `（${Math.round((priceYen / jika) * 100)}%）`}
+                  {omote !== null && ` ／ 家賃 ${formatYen(yachin)}・表面 ${omote.toFixed(1)}%`}
                 </span>
               </button>
               <div className="saved-tools">
