@@ -12,7 +12,20 @@ export function m2ToTsubo(m2) {
 }
 
 // 公示/調査の㎡単価と面積(㎡)から各評価額の目安を計算
-export function evaluate(unitPrice, areaM2) {
+// actualRosenka（円/㎡）= 路線価図で読んだ実数値。指定時はそちらを正として時価・固定資産税評価を逆算
+export function evaluate(unitPrice, areaM2, actualRosenka = null) {
+  if (actualRosenka > 0) {
+    const jikaUnit = actualRosenka / ROSENKA_RATIO
+    return {
+      jikaUnit: Math.round(jikaUnit),
+      koteiUnit: Math.round(jikaUnit * KOTEI_RATIO),
+      rosenkaUnit: Math.round(actualRosenka),
+      jika: Math.round(jikaUnit * areaM2),
+      kotei: Math.round(jikaUnit * KOTEI_RATIO * areaM2),
+      rosenka: Math.round(actualRosenka * areaM2),
+      isActual: true,
+    }
+  }
   const jika = unitPrice * areaM2 // 時価の目安（公示水準）
   return {
     jikaUnit: unitPrice,
@@ -21,6 +34,7 @@ export function evaluate(unitPrice, areaM2) {
     jika: Math.round(jika),
     kotei: Math.round(jika * KOTEI_RATIO),
     rosenka: Math.round(jika * ROSENKA_RATIO),
+    isActual: false,
   }
 }
 

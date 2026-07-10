@@ -267,6 +267,50 @@
   background: #e8f0e9;
 }
 
+/* 路線価入力 */
+.rosenka-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0 6px;
+  border-top: 1px solid #e4eae4;
+  padding-top: 12px;
+}
+.rosenka-input-row label {
+  font-size: 0.9rem;
+}
+.rosenka-input-row input {
+  width: 90px;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #c5d0c8;
+  border-radius: 8px;
+}
+.rosenka-mode {
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rosenka-mode.auto {
+  color: #6a7a6e;
+}
+.rosenka-mode.manual {
+  color: #1a7f37;
+  font-weight: bold;
+}
+.rosenka-clear {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border: 1px solid #c5d0c8;
+  border-radius: 12px;
+  background: #f7faf7;
+  color: #35524a;
+  cursor: pointer;
+  font-weight: normal;
+}
+
 /* 保存ボタン・保存リスト */
 .save-btn {
   width: 100%;

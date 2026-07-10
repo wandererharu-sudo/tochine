@@ -1,9 +1,9 @@
 import { evaluate, taxEstimate, formatYen, tsuboToM2 } from '../lib/tax'
 
 // 固定資産税・都市計画税の年額概算（特例あり/なしの2ケース併記）
-export default function TaxCard({ point, area, unit }) {
+export default function TaxCard({ point, area, unit, actualRosenka }) {
   const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0
-  const ev = evaluate(point.p, areaM2)
+  const ev = evaluate(point.p, areaM2, actualRosenka)
   const tax = taxEstimate(ev.kotei, areaM2)
   if (!tax) return null
 

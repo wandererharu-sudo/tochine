@@ -11,6 +11,7 @@ import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
 import { geocode } from './lib/geocode'
 import { nearestPoints } from './lib/geo'
+import { ROSENKA_RATIO } from './lib/tax'
 import { PREFS, prefCodeFromAddress } from './lib/prefecture'
 import './App.css'
 
@@ -30,6 +31,7 @@ export default function App() {
   const [area, setArea] = useState('')
   const [unit, setUnit] = useState('m2')
   const [price, setPrice] = useState('')
+  const [rosenkaInput, setRosenkaInput] = useState('') // 路線価図で読んだ実数値（千円/㎡）
   const [gpsLoading, setGpsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
@@ -87,6 +89,7 @@ export default function App() {
     setCandidates([])
     setLocation(cand)
     setSelectedPoint(null)
+    setRosenkaInput('') // 場所が変われば前面道路も変わるのでリセット
     setError('')
     const code = forcedCode ?? prefCodeFromAddress(cand.title)
     setPrefCode(code)
@@ -170,6 +173,7 @@ export default function App() {
       area,
       unit,
       price,
+      rosenkaInput,
       memo: '',
       point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p } : null,
       date: new Date().toISOString().slice(0, 10),
@@ -189,8 +193,14 @@ export default function App() {
     setUnit(it.unit ?? 'm2')
     setPrice(it.price ?? '')
     await handleSelect({ title: it.title, lat: it.lat, lon: it.lon }, it.prefCode ?? null)
+    setRosenkaInput(it.rosenkaInput ?? '') // handleSelectがリセットするので後から復元
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  // 路線価: 自動値＝近隣地点からの換算（千円/㎡）。手入力があればそちらが正となり
+  // 全カードの計算が実路線価ベース（isActual）に切り替わる
+  const autoRosenka = current ? Math.round((current.p * ROSENKA_RATIO) / 1000) : null
+  const actualRosenka = rosenkaInput !== '' ? (Number(rosenkaInput) || 0) * 1000 || null : null
 
   return (
     <div className="app">
@@ -264,6 +274,7 @@ export default function App() {
             onAreaChange={setArea}
             onUnitChange={setUnit}
             years={meta}
+            actualRosenka={actualRosenka}
           />
           <PriceCompareCard
             point={current}
@@ -271,15 +282,24 @@ export default function App() {
             unit={unit}
             price={price}
             onPriceChange={setPrice}
+            actualRosenka={actualRosenka}
           />
-          <TaxCard point={current} area={area} unit={unit} />
+          <TaxCard point={current} area={area} unit={unit} actualRosenka={actualRosenka} />
           <button type="button" className="save-btn" onClick={saveCurrent}>
             {savedFlash ? '✓ 保存しました' : '💾 この土地を保存リストへ'}
           </button>
         </>
       )}
 
-      {location && prefCode && <RosenkaCard prefCode={prefCode} title={location.title} />}
+      {location && prefCode && (
+        <RosenkaCard
+          prefCode={prefCode}
+          title={location.title}
+          value={rosenkaInput}
+          autoValue={autoRosenka}
+          onChange={setRosenkaInput}
+        />
+      )}
 
       <SavedList
         items={saved}

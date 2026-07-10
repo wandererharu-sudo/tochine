@@ -1,4 +1,4 @@
-import { judge, formatYen, tsuboToM2 } from '../lib/tax'
+import { judge, formatYen, tsuboToM2, evaluate } from '../lib/tax'
 
 // ④検討物件の保存・比較リスト（localStorage）
 export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
@@ -9,7 +9,11 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
       <ul className="points">
         {items.map((it) => {
           const areaM2 = it.unit === 'tsubo' ? tsuboToM2(Number(it.area) || 0) : Number(it.area) || 0
-          const jika = it.point && areaM2 > 0 ? it.point.p * areaM2 : null
+          const actual = (Number(it.rosenkaInput) || 0) * 1000 || null
+          const jika =
+            areaM2 > 0 && (it.point || actual)
+              ? evaluate(it.point?.p ?? 0, areaM2, actual).jika
+              : null
           const priceYen = (Number(it.price) || 0) * 10000
           const j = jika && priceYen > 0 ? judge(priceYen / jika) : null
           return (

@@ -1,16 +1,18 @@
 import { evaluate, formatYen, tsuboToM2, m2ToTsubo } from '../lib/tax'
 import Sparkline from './Sparkline'
 
-// 面積入力＋評価額目安カード
-export default function ValuationCard({ point, area, unit, onAreaChange, onUnitChange, years }) {
+// 面積入力＋評価額目安カード。actualRosenka（路線価図の実数値）があればそちら基準
+export default function ValuationCard({ point, area, unit, onAreaChange, onUnitChange, years, actualRosenka }) {
   const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0
-  const ev = evaluate(point.p, areaM2)
+  const ev = evaluate(point.p, areaM2, actualRosenka)
   const hasArea = areaM2 > 0
   const yearLabel = point.s === 'K' ? `${years.koji_year}年公示` : `${years.chosa_year}年調査`
 
   return (
     <section className="card">
-      <h2>評価額の目安 <span className="sub">基準: {point.n}（{yearLabel}）</span></h2>
+      <h2>評価額の目安 <span className="sub">
+        {ev.isActual ? '基準: 路線価図の実数値' : `基準: ${point.n}（${yearLabel}）`}
+      </span></h2>
       <div className="area-row">
         <label htmlFor="area">土地面積</label>
         <input
@@ -36,17 +38,17 @@ export default function ValuationCard({ point, area, unit, onAreaChange, onUnitC
       <table className="val-table">
         <tbody>
           <tr>
-            <th>公示・調査価格<span className="note">（時価の目安）</span></th>
+            <th>{ev.isActual ? <>時価の目安<span className="note">（路線価÷0.8）</span></> : <>公示・調査価格<span className="note">（時価の目安）</span></>}</th>
             <td>{formatYen(ev.jikaUnit)}/㎡</td>
             <td className="total">{hasArea ? formatYen(ev.jika) : '─'}</td>
           </tr>
-          <tr className="main-row">
-            <th>固定資産税評価額<span className="note">（×0.7）</span></th>
+          <tr className={ev.isActual ? '' : 'main-row'}>
+            <th>固定資産税評価額<span className="note">{ev.isActual ? '（÷0.8×0.7）' : '（×0.7）'}</span></th>
             <td>{formatYen(ev.koteiUnit)}/㎡</td>
             <td className="total">{hasArea ? formatYen(ev.kotei) : '─'}</td>
           </tr>
-          <tr>
-            <th>相続税路線価<span className="note">（×0.8）</span></th>
+          <tr className={ev.isActual ? 'main-row' : ''}>
+            <th>相続税路線価<span className="note">{ev.isActual ? '（図面の実数値）' : '（×0.8）'}</span></th>
             <td>{formatYen(ev.rosenkaUnit)}/㎡</td>
             <td className="total">{hasArea ? formatYen(ev.rosenka) : '─'}</td>
           </tr>

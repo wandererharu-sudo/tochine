@@ -1,9 +1,9 @@
 import { evaluate, formatYen, tsuboToM2, judge } from '../lib/tax'
 
-export default function PriceCompareCard({ point, area, unit, price, onPriceChange }) {
+export default function PriceCompareCard({ point, area, unit, price, onPriceChange, actualRosenka }) {
   const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0
   if (!(areaM2 > 0)) return null
-  const ev = evaluate(point.p, areaM2)
+  const ev = evaluate(point.p, areaM2, actualRosenka)
   const priceYen = (Number(price) || 0) * 10000
   const ratio = priceYen > 0 ? priceYen / ev.jika : null
   const j = ratio !== null ? judge(ratio) : null
@@ -33,7 +33,7 @@ export default function PriceCompareCard({ point, area, unit, price, onPriceChan
           <table className="val-table">
             <tbody>
               <tr>
-                <th>土地値（時価の目安）</th>
+                <th>土地値（時価の目安）{ev.isActual && <span className="note">・実路線価ベース</span>}</th>
                 <td className="total">{formatYen(ev.jika)}</td>
               </tr>
               <tr>

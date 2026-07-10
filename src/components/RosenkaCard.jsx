@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { loadRosenka, findRosenka } from '../lib/rosenka'
 
 // 国税庁 路線価図への直行リンク。町丁まで特定できたら図面PDF、
-// できなければ市区町村の町名一覧ページへフォールバック
-export default function RosenkaCard({ prefCode, title }) {
+// できなければ市区町村の町名一覧ページへフォールバック。
+// 路線価入力欄: 換算値（autoValue）を自動表示し、図面の実数値に書き換えると
+// 全カードの計算が実路線価ベースに切り替わる
+export default function RosenkaCard({ prefCode, title, value, autoValue, onChange }) {
   const [data, setData] = useState(undefined)
 
   useEffect(() => {
@@ -60,6 +62,34 @@ export default function RosenkaCard({ prefCode, title }) {
           </a>
         </p>
       )}
+
+      <div className="rosenka-input-row">
+        <label htmlFor="rosenka-num">前面道路の路線価</label>
+        <input
+          id="rosenka-num"
+          type="number"
+          inputMode="decimal"
+          min="0"
+          value={value !== '' ? value : autoValue ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="34"
+        />
+        <span>千円/㎡</span>
+        {value !== '' ? (
+          <span className="rosenka-mode manual">
+            ✓ 図面の実数値で計算中
+            <button type="button" className="rosenka-clear" onClick={() => onChange('')}>
+              自動に戻す
+            </button>
+          </span>
+        ) : (
+          <span className="rosenka-mode auto">自動（近隣地点から換算）</span>
+        )}
+      </div>
+      <p className="note">
+        図面PDFで前面道路の数字（例: 34E → 34）を確認し、違っていれば書き換えてください。
+        書き換えると評価額・土地値判定・税額が実路線価ベースになります（英字＝借地権割合は入力不要）。
+      </p>
     </section>
   )
 }
