@@ -522,6 +522,40 @@
   font-weight: bold;
 }
 
+/* 賃貸収支: 借入入力行・諸費用の参考概算・返済比率の色分け */
+.kariire-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0 6px;
+  border-top: 1px solid #e4eae4;
+  padding-top: 12px;
+}
+.kariire-head {
+  font-size: 0.88rem;
+  font-weight: bold;
+  color: #55705c;
+}
+.shohi-hint {
+  font-size: 0.85rem;
+  color: #556055;
+  margin: 2px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.judge-cell.good {
+  color: #1a7f37;
+}
+.judge-cell.soso {
+  color: #8a6d1a;
+}
+.judge-cell.bad {
+  color: #b3261e;
+}
+
 /* 保存リストの区域区分バッジ */
 .badge.chosei {
   background: #b3261e;

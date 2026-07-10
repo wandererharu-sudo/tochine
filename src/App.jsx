@@ -20,7 +20,10 @@ import './App.css'
 
 const DATA_BASE = `${import.meta.env.BASE_URL}data/`
 const EMPTY_COSTS = { kaitai: '', zanchi: '', reform: '', safety: '10' } // 指値逆算の初期値（万円・%）
-const EMPTY_CHINTAI = { kakaku: '', yachin: '', shoki: '', keihi: '15' } // 賃貸収支の初期値（万円・%）
+const EMPTY_CHINTAI = {
+  kakaku: '', yachin: '', shoki: '', keihi: '15', // 万円・%
+  kariire: '', kinri: '2.0', kikan: '15', // 借入（任意）
+}
 
 export default function App() {
   const [meta, setMeta] = useState(null)
@@ -226,7 +229,7 @@ export default function App() {
     setYouto(it.youto ?? '')
     setChousei(it.chousei ?? CHOUSEI_DEFAULT)
     setCosts(it.costs ?? EMPTY_COSTS)
-    setChintai(it.chintai ?? EMPTY_CHINTAI)
+    setChintai({ ...EMPTY_CHINTAI, ...(it.chintai ?? {}) }) // 旧保存データに無いキーは初期値で補完
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
