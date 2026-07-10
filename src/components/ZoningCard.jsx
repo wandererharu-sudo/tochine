@@ -1,8 +1,8 @@
-import { KUIKI_OPTIONS, YOUTO_OPTIONS } from '../lib/tax'
+import { KUIKI_OPTIONS, YOUTO_OPTIONS, CHOUSEI_OPTIONS } from '../lib/tax'
 
 // 用途地域・区域区分の手入力欄（自動判定は未対応）
-// 市街化調整区域かどうかで土地の価値が大きく変わるため、事前にわかっていれば入れてもらう
-export default function ZoningCard({ kuiki, youto, onKuikiChange, onYoutoChange }) {
+// 市街化調整区域を選ぶと減価補正セレクトが現れ、評価額・土地値の概算に掛け率が反映される
+export default function ZoningCard({ kuiki, youto, chousei, onKuikiChange, onYoutoChange, onChouseiChange }) {
   return (
     <section className="card">
       <h2>用途地域 <span className="sub">事前にわかっていれば入力（保存リストに残ります）</span></h2>
@@ -25,11 +25,21 @@ export default function ZoningCard({ kuiki, youto, onKuikiChange, onYoutoChange 
         </select>
       </div>
       {kuiki === '市街化調整区域' && (
-        <p className="warn-text">
-          ⚠ 市街化調整区域: 原則として新築・建替えに許可が必要です。再建築の可否
-          （既存宅地・用途変更等）で土地値が大きく変わるため、周辺の公示価格をそのまま
-          当てはめると高く出すぎることがあります。
-        </p>
+        <>
+          <div className="area-row">
+            <label htmlFor="chousei">調整区域補正</label>
+            <select id="chousei" value={chousei} onChange={(e) => onChouseiChange(e.target.value)}>
+              {CHOUSEI_OPTIONS.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+          <p className="warn-text">
+            ⚠ 市街化調整区域: 原則として新築・建替えに許可が必要です。周辺の公示価格を
+            そのまま当てはめると高く出すぎるため、上の掛け率（×{chousei}）で
+            評価額・土地値・税額の概算に反映しています。
+          </p>
+        </>
       )}
       {kuiki === '都市計画区域外' && (
         <p className="warn-text">⚠ 都市計画区域外: 周辺に公示・調査地点が少なく、目安の精度が落ちます。</p>
@@ -39,6 +49,7 @@ export default function ZoningCard({ kuiki, youto, onKuikiChange, onYoutoChange 
       )}
       <p className="note">
         ※自動判定は未対応です。市町村の都市計画図・用途地域マップでご確認ください。
+        補正率は概算の目安で、実勢は再建築可否・接道・周辺需要で大きく変わります。
       </p>
     </section>
   )

@@ -55,6 +55,11 @@ export default function ValuationCard({ point, area, unit, onAreaChange, onUnitC
         </tbody>
       </table>
       {!hasArea && <p className="hint">面積を入れると総額が出ます</p>}
+      {point.chousei && !ev.isActual && (
+        <p className="note">
+          ※市街化調整区域のため、周辺公示の単価に ×{point.chousei} を掛けた概算です。
+        </p>
+      )}
       <Sparkline point={point} years={years} />
       {point.u !== '住宅地' && (
         <p className="warn-text">

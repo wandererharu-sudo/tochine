@@ -10,9 +10,11 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
         {items.map((it) => {
           const areaM2 = it.unit === 'tsubo' ? tsuboToM2(Number(it.area) || 0) : Number(it.area) || 0
           const actual = (Number(it.rosenkaInput) || 0) * 1000 || null
+          // 市街化調整区域は減価補正を掛けた概算（メイン表示と同じ扱い）
+          const ratio = it.kuiki === '市街化調整区域' ? Number(it.chousei) || 1 : 1
           const jika =
             areaM2 > 0 && (it.point || actual)
-              ? evaluate(it.point?.p ?? 0, areaM2, actual).jika
+              ? evaluate((it.point?.p ?? 0) * ratio, areaM2, actual).jika
               : null
           const priceYen = (Number(it.price) || 0) * 10000
           const j = jika && priceYen > 0 ? judge(priceYen / jika) : null

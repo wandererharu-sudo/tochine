@@ -13,7 +13,7 @@ import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
 import { geocode } from './lib/geocode'
 import { nearestPoints } from './lib/geo'
-import { ROSENKA_RATIO } from './lib/tax'
+import { ROSENKA_RATIO, CHOUSEI_DEFAULT } from './lib/tax'
 import { PREFS, prefCodeFromAddress } from './lib/prefecture'
 import './App.css'
 
@@ -37,6 +37,7 @@ export default function App() {
   const [rosenkaInput, setRosenkaInput] = useState('') // 路線価図で読んだ実数値（千円/㎡）
   const [kuiki, setKuiki] = useState('') // 区域区分（手入力・市街化調整区域の警戒用）
   const [youto, setYouto] = useState('') // 用途地域（手入力）
+  const [chousei, setChousei] = useState(CHOUSEI_DEFAULT) // 調整区域の減価補正率
   const [costs, setCosts] = useState(EMPTY_COSTS) // 指値逆算の費用入力
   const [gpsLoading, setGpsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -98,6 +99,7 @@ export default function App() {
     setRosenkaInput('') // 場所が変われば前面道路も変わるのでリセット
     setKuiki('')
     setYouto('')
+    setChousei(CHOUSEI_DEFAULT)
     setCosts(EMPTY_COSTS)
     setError('')
     const code = forcedCode ?? prefCodeFromAddress(cand.title)
@@ -161,6 +163,14 @@ export default function App() {
 
   const current = selectedPoint ?? (nearest && nearest[0]) ?? null
 
+  // 市街化調整区域なら周辺公示の単価に減価補正を掛けた概算で全カードを計算する
+  // （路線価図の実数値を入力した場合はそちらが正なので補正は掛からない）
+  const chouseiRatio = kuiki === '市街化調整区域' ? Number(chousei) || 1 : null
+  const adjusted =
+    current && chouseiRatio
+      ? { ...current, p: current.p * chouseiRatio, chousei }
+      : current
+
   // 緯度経度をコピー（Googleマップ等にそのまま貼れる形式）
   const copyLatLon = async () => {
     try {
@@ -185,6 +195,7 @@ export default function App() {
       rosenkaInput,
       kuiki,
       youto,
+      chousei,
       costs,
       memo: '',
       point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p } : null,
@@ -208,13 +219,14 @@ export default function App() {
     setRosenkaInput(it.rosenkaInput ?? '') // handleSelectがリセットするので後から復元
     setKuiki(it.kuiki ?? '')
     setYouto(it.youto ?? '')
+    setChousei(it.chousei ?? CHOUSEI_DEFAULT)
     setCosts(it.costs ?? EMPTY_COSTS)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // 路線価: 自動値＝近隣地点からの換算（千円/㎡）。手入力があればそちらが正となり
   // 全カードの計算が実路線価ベース（isActual）に切り替わる
-  const autoRosenka = current ? Math.round((current.p * ROSENKA_RATIO) / 1000) : null
+  const autoRosenka = adjusted ? Math.round((adjusted.p * ROSENKA_RATIO) / 1000) : null
   const actualRosenka = rosenkaInput !== '' ? (Number(rosenkaInput) || 0) * 1000 || null : null
 
   return (
@@ -284,15 +296,17 @@ export default function App() {
         <ZoningCard
           kuiki={kuiki}
           youto={youto}
+          chousei={chousei}
           onKuikiChange={setKuiki}
           onYoutoChange={setYouto}
+          onChouseiChange={setChousei}
         />
       )}
 
       {current && meta && (
         <>
           <ValuationCard
-            point={current}
+            point={adjusted}
             area={area}
             unit={unit}
             onAreaChange={setArea}
@@ -301,7 +315,7 @@ export default function App() {
             actualRosenka={actualRosenka}
           />
           <PriceCompareCard
-            point={current}
+            point={adjusted}
             area={area}
             unit={unit}
             price={price}
@@ -309,7 +323,7 @@ export default function App() {
             actualRosenka={actualRosenka}
           />
           <SashineCard
-            point={current}
+            point={adjusted}
             area={area}
             unit={unit}
             price={price}
@@ -318,7 +332,7 @@ export default function App() {
             onChange={setCosts}
           />
           <TaxCard
-            point={current}
+            point={adjusted}
             area={area}
             unit={unit}
             actualRosenka={actualRosenka}

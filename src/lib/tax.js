@@ -63,6 +63,16 @@ export const YOUTO_OPTIONS = [
   '指定なし',
 ]
 
+// 市街化調整区域の減価補正（概算）。周辺公示は市街化区域側の水準のことが多く、
+// そのままでは高く出すぎるため、再建築の見込みに応じた掛け率で粗く補正する
+// （目安: 実勢で市街化区域の5〜7割程度・相続税の雑種地しんしゃく50〜30%減に準拠）
+export const CHOUSEI_OPTIONS = [
+  { value: '0.7', label: '再建築できる見込み（既存宅地等）　×0.7' },
+  { value: '0.6', label: '不明・未確認　×0.6' },
+  { value: '0.5', label: '再建築が難しい　×0.5' },
+]
+export const CHOUSEI_DEFAULT = '0.6'
+
 // ①土地値判定: 販売価格/土地値の比率から買値の妥当性を判定（PriceCompareCard・SavedListで共用）
 export function judge(ratio) {
   if (ratio <= 0.8) return { mark: '◎', label: '土地値の8割以下', cls: 'good' }

@@ -33,7 +33,14 @@ export default function PriceCompareCard({ point, area, unit, price, onPriceChan
           <table className="val-table">
             <tbody>
               <tr>
-                <th>土地値（時価の目安）{ev.isActual && <span className="note">・実路線価ベース</span>}</th>
+                <th>
+                  土地値（時価の目安）
+                  {ev.isActual ? (
+                    <span className="note">・実路線価ベース</span>
+                  ) : (
+                    point.chousei && <span className="note">・調整区域補正×{point.chousei}</span>
+                  )}
+                </th>
                 <td className="total">{formatYen(ev.jika)}</td>
               </tr>
               <tr>
