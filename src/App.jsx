@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import AddressSearch from './components/AddressSearch'
 import PointList from './components/PointList'
 import ValuationCard from './components/ValuationCard'
+import PriceCompareCard from './components/PriceCompareCard'
 import TaxCard from './components/TaxCard'
 import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
@@ -25,6 +26,8 @@ export default function App() {
   const [selectedPoint, setSelectedPoint] = useState(null)
   const [area, setArea] = useState('')
   const [unit, setUnit] = useState('m2')
+  const [price, setPrice] = useState('')
+  const [gpsLoading, setGpsLoading] = useState(false)
   const prefCache = useRef({}) // {code: points[]}
 
   useEffect(() => {
@@ -63,12 +66,12 @@ export default function App() {
     return json.points
   }
 
-  const handleSelect = async (cand) => {
+  const handleSelect = async (cand, forcedCode = null) => {
     setCandidates([])
     setLocation(cand)
     setSelectedPoint(null)
     setError('')
-    const code = prefCodeFromAddress(cand.title)
+    const code = forcedCode ?? prefCodeFromAddress(cand.title)
     setPrefCode(code)
     setNeedPrefSelect(!code)
     if (!code) {
@@ -76,6 +79,38 @@ export default function App() {
       return
     }
     await selectPref(code)
+  }
+
+  // ⑤現在地から検索: geolocation → GSI逆ジオコーダで市区町村コード → 県判定
+  const handleGps = () => {
+    if (!navigator.geolocation) {
+      setError('この端末では現在地を取得できません。')
+      return
+    }
+    setGpsLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lon = pos.coords.longitude
+        let title = '現在地'
+        let code = null
+        try {
+          const res = await fetch(
+            `https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${lat}&lon=${lon}`)
+          const j = await res.json()
+          const muni = j?.results?.muniCd
+          if (muni) code = String(muni).padStart(5, '0').slice(0, 2)
+          if (j?.results?.lv01Nm) title = `現在地（${j.results.lv01Nm}付近）`
+        } catch { /* 県判定できなければ手動セレクタにフォールバック */ }
+        await handleSelect({ title, lat, lon }, code)
+        setGpsLoading(false)
+      },
+      () => {
+        setError('現在地を取得できませんでした。位置情報の許可をご確認いただくか、')
+        setGpsLoading(false)
+      },
+      { timeout: 10000 },
+    )
   }
 
   const selectPref = async (code) => {
@@ -110,6 +145,8 @@ export default function App() {
         onSelect={handleSelect}
         loading={loading}
         error={error}
+        onGps={handleGps}
+        gpsLoading={gpsLoading}
       />
 
       {location && (
@@ -152,6 +189,13 @@ export default function App() {
             onAreaChange={setArea}
             onUnitChange={setUnit}
             years={meta}
+          />
+          <PriceCompareCard
+            point={current}
+            area={area}
+            unit={unit}
+            price={price}
+            onPriceChange={setPrice}
           />
           <TaxCard point={current} area={area} unit={unit} />
         </>

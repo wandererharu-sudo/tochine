@@ -1,6 +1,7 @@
 {
  "koji_year": 2026,
  "chosa_year": 2025,
+ "hist_years": 10,
  "generated": "2026-07-10",
  "total": 46520,
  "counts": {

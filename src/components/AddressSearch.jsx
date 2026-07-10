@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 // 住所入力＋GSI候補リスト＋座標直接入力フォールバック
-export default function AddressSearch({ onSearch, candidates, onSelect, loading, error }) {
+export default function AddressSearch({ onSearch, candidates, onSelect, loading, error, onGps, gpsLoading }) {
   const [query, setQuery] = useState('')
   const [showCoord, setShowCoord] = useState(false)
   const [coordText, setCoordText] = useState('')
@@ -30,6 +30,10 @@ export default function AddressSearch({ onSearch, candidates, onSelect, loading,
         />
         <button type="submit" disabled={loading}>{loading ? '検索中…' : '検索'}</button>
       </form>
+
+      <button type="button" className="gps-btn" onClick={onGps} disabled={gpsLoading}>
+        {gpsLoading ? '現在地を取得中…' : '📍 現在地から調べる'}
+      </button>
 
       {error && (
         <p className="error">

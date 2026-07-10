@@ -1,4 +1,5 @@
 import { evaluate, formatYen, tsuboToM2, m2ToTsubo } from '../lib/tax'
+import Sparkline from './Sparkline'
 
 // 面積入力＋評価額目安カード
 export default function ValuationCard({ point, area, unit, onAreaChange, onUnitChange, years }) {
@@ -52,6 +53,7 @@ export default function ValuationCard({ point, area, unit, onAreaChange, onUnitC
         </tbody>
       </table>
       {!hasArea && <p className="hint">面積を入れると総額が出ます</p>}
+      <Sparkline point={point} years={years} />
       {point.u !== '住宅地' && (
         <p className="warn-text">
           選択中の地点は「{point.u}」です。×0.7／×0.8 の換算は宅地の経験則のため、参考程度にご覧ください。

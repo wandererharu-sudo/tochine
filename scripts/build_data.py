@@ -47,12 +47,33 @@ def point_number(name: str, use_code: str, seq: str, source: str) -> str:
     return f"{prefix}{use_part}-{int(seq)}"
 
 
+HIST_YEARS = 10  # 直近何年分の過去価格を持たせるか
+
+
+def hist_attrs(m: dict) -> list[str]:
+    """当年価格の属性名から遡って、直近 HIST_YEARS 年分の属性名リスト（古→新）を作る"""
+    prefix, cur = m["hist_current_attr"].rsplit("_", 1)
+    cur = int(cur)
+    return [f"{prefix}_{cur - i:03d}" for i in range(HIST_YEARS, 0, -1)]
+
+
 def convert(dataset_key: str) -> tuple[list[dict], int, Counter]:
     m = ATTR_MAPS[dataset_key]
     zip_path = RAW_DIR / m["zip_name"]
     with zipfile.ZipFile(zip_path) as z:
         geojson = json.loads(z.read(m["geojson_member"]))
     feats = geojson["features"]
+
+    # 過去価格系列の年割り当て検証: 「当年」属性の値が当年価格と一致するはず
+    h_attrs = hist_attrs(m)
+    mismatch = sum(
+        1 for f in feats[:500]
+        if int(f["properties"].get(m["hist_current_attr"], -1)) != int(f["properties"][m["price"]])
+    )
+    if mismatch > 25:  # 5%超のズレ → 年割り当てが間違っている
+        raise SystemExit(
+            f"{dataset_key}: hist_current_attr={m['hist_current_attr']} が当年価格と不一致 "
+            f"{mismatch}/500件。年版更新で属性番号がズレた可能性")
 
     points = []
     excluded = Counter()
@@ -72,6 +93,7 @@ def convert(dataset_key: str) -> tuple[list[dict], int, Counter]:
         if price > PRICE_WARN:
             print(f"  警告: 高額地点 {price:,}円/㎡ {p[m['address']]}")
         year = int(p[m["year"]])
+        hist = [int(p.get(a, 0) or 0) for a in h_attrs]  # 古→新、未調査年は0
         points.append({
             "lat": round(lat, 6),
             "lon": round(lon, 6),
@@ -81,6 +103,7 @@ def convert(dataset_key: str) -> tuple[list[dict], int, Counter]:
             "n": point_number(str(p[m["name"]]), use_code, str(p[m["seq"]]), m["source"]),
             "s": m["source"],
             "c": str(p[m["admin_code"]])[:2],  # 都道府県コード
+            **({"h": hist} if any(hist) else {}),  # 直近10年の過去価格（円/㎡、古→新）
         })
 
     lo, hi = m["expected_count"]
@@ -140,6 +163,7 @@ def main() -> None:
 
     index = {
         **years,
+        "hist_years": HIST_YEARS,
         "generated": date.today().isoformat(),
         "total": sum(counts.values()),
         "counts": counts,
