@@ -49,6 +49,16 @@ gh の OAuth トークンに workflow スコープが無く push できなかっ
 `git add .github && git commit && git push` で自動デプロイに切り替えられる
 （その後 Pages の Source を「GitHub Actions」に変更）。
 
+## 物件ページからの取り込み（URLパラメータ・2026-09-11）
+
+`?addr=住所&price=万円&area=㎡&unit=m2|tsubo&src=元ページURL&memo=任意` で開くと、
+起動時に住所を自動検索し、面積・販売価格をプリセットする（保存時は src がメモに入る）。
+
+- ブックマークレット: `scripts/bookmarklet.js`（元）→ `scripts/bookmarklet.min.txt`（javascript: 形式）。
+  説明ページは `public/bookmarklet.html`（公開: https://wandererharu-sudo.github.io/tochine/bookmarklet.html ）。
+  SUUMO 実ページで「所在地／価格／土地面積」の拾い出しを検証済み（innerText の見出し近傍を正規表現で拾う汎用方式）。
+- みこ経由: 物件URLを渡す→Claude が住所・価格・面積を読み取り、上記パラメータ付きURLを開く。
+
 ## 年次更新手順（データの入れ替え）
 
 地価公示は毎年3月下旬、地価調査は毎年9月下旬に新年版が公開される。
