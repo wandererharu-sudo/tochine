@@ -671,3 +671,13 @@
   border-top: 1px solid #dde3dd;
   padding-top: 8px;
 }
+
+/* URL取り込み（ブックマークレット／みこ経由）の通知行 */
+.import-note {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  background: #fff7e0;
+  border: 1px solid #f0d58c;
+  border-radius: 8px;
+  font-size: 0.9em;
+}

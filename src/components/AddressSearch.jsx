@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 // 住所入力＋GSI候補リスト＋座標直接入力フォールバック
-export default function AddressSearch({ onSearch, candidates, onSelect, loading, error, onGps, gpsLoading }) {
-  const [query, setQuery] = useState('')
+export default function AddressSearch({ initialQuery = '', onSearch, candidates, onSelect, loading, error, onGps, gpsLoading }) {
+  const [query, setQuery] = useState(initialQuery)
   const [showCoord, setShowCoord] = useState(false)
   const [coordText, setCoordText] = useState('')
 

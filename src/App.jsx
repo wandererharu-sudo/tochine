@@ -19,6 +19,27 @@ import { PREFS, prefCodeFromAddress } from './lib/prefecture'
 import './App.css'
 
 const DATA_BASE = `${import.meta.env.BASE_URL}data/`
+// URLパラメータからの自動入力（ブックマークレット／みこ経由の取り込み用）
+// 例: ?addr=愛知県常滑市新開町1-2&price=1980&area=165.3&unit=m2&src=https://suumo.jp/...
+function readImportParams() {
+  try {
+    const q = new URLSearchParams(window.location.search)
+    const addr = (q.get('addr') || '').trim()
+    if (!addr) return null
+    const num = (v) => (v && /^[\d.]+$/.test(v.replace(/,/g, '')) ? v.replace(/,/g, '') : '')
+    return {
+      addr,
+      price: num(q.get('price')),
+      area: num(q.get('area')),
+      unit: q.get('unit') === 'tsubo' ? 'tsubo' : 'm2',
+      src: (q.get('src') || '').trim(),
+      memo: (q.get('memo') || '').trim(),
+    }
+  } catch {
+    return null
+  }
+}
+
 const EMPTY_COSTS = { kaitai: '', zanchi: '', reform: '', safety: '10' } // 指値逆算の初期値（万円・%）
 const EMPTY_CHINTAI = {
   kakaku: '', yachin: '', shoki: '', keihi: '15', // 万円・%
@@ -48,6 +69,7 @@ export default function App() {
   const [gpsLoading, setGpsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [imported] = useState(() => readImportParams()) // URL取り込み元（物件ページ）
   const [saved, setSaved] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('tochine_saved')) ?? []
@@ -67,6 +89,18 @@ export default function App() {
       .then((r) => r.json())
       .then(setMeta)
       .catch(() => {})
+  }, [])
+
+  // URLパラメータで住所が渡されたら起動時に自動検索（価格・面積もプリセット）
+  useEffect(() => {
+    if (!imported) return
+    if (imported.price) setPrice(imported.price)
+    if (imported.area) setArea(imported.area)
+    setUnit(imported.unit)
+    handleSearch(imported.addr)
+    // 再読み込みで二重取り込みにならないようパラメータはURLから消す（表示用stateは保持）
+    window.history.replaceState(null, '', window.location.pathname)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSearch = async (query) => {
@@ -216,7 +250,7 @@ export default function App() {
       chousei,
       costs,
       chintai,
-      memo: '',
+      memo: imported?.src ? [imported.memo, imported.src].filter(Boolean).join(' ') : '',
       point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p } : null,
       date: new Date().toISOString().slice(0, 10),
     }
@@ -256,7 +290,22 @@ export default function App() {
         <p>住所から土地の評価額の目安を調べます（土地のみ・概算）</p>
       </header>
 
+      {imported && (
+        <p className="import-note">
+          物件ページから取り込み: {imported.addr}
+          {imported.price && ` ／ ${imported.price}万円`}
+          {imported.area && ` ／ ${imported.area}${imported.unit === 'tsubo' ? '坪' : '㎡'}`}
+          {imported.src && (
+            <>
+              {' '}
+              <a href={imported.src} target="_blank" rel="noopener noreferrer">元ページ</a>
+            </>
+          )}
+        </p>
+      )}
+
       <AddressSearch
+        initialQuery={imported?.addr ?? ''}
         onSearch={handleSearch}
         candidates={candidates}
         onSelect={handleSelect}
