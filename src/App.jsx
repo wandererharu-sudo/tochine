@@ -70,6 +70,7 @@ export default function App() {
   const [youto, setYouto] = useState('') // 用途地域（手入力）
   const [zoningAuto, setZoningAuto] = useState(null) // 用途地域の自動判定結果（lib/youto.js）
   const zoningReq = useRef(0) // 連続検索時に古い判定結果で上書きしないための通し番号
+  const [pointZoning, setPointZoning] = useState({}) // 最寄り地点ごとの区域区分・用途地域 {n+s: 判定結果}
   const [chousei, setChousei] = useState(CHOUSEI_DEFAULT) // 調整区域の減価補正率
   const [costs, setCosts] = useState(EMPTY_COSTS) // 指値逆算の費用入力
   const [chintai, setChintai] = useState(EMPTY_CHINTAI) // 賃貸収支の入力
@@ -246,6 +247,19 @@ export default function App() {
     return nearestPoints(pool, location.lat, location.lon, 5)
   }, [points, location, residentialOnly])
 
+  // 最寄り地点それぞれの区域区分・用途地域（対応県のみ）。ファイルは lib/youto.js 側でキャッシュされるので地点数分でも軽い
+  useEffect(() => {
+    if (!nearest || !prefCode) { setPointZoning({}); return }
+    let alive = true
+    setPointZoning({})
+    Promise.all(
+      nearest.map((p) => lookupZoning(p.lat, p.lon, prefCode).then((res) => [p.n + p.s, res]))
+    ).then((entries) => {
+      if (alive) setPointZoning(Object.fromEntries(entries))
+    })
+    return () => { alive = false }
+  }, [nearest, prefCode])
+
   const current = selectedPoint ?? (nearest && nearest[0]) ?? null
 
   // 市街化調整区域なら周辺公示の単価に減価補正を掛けた概算で全カードを計算する
@@ -406,6 +420,7 @@ export default function App() {
       {nearest && (
         <PointList
           points={nearest}
+          zoning={pointZoning}
           selected={current}
           onSelect={setSelectedPoint}
           residentialOnly={residentialOnly}

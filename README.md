@@ -58,6 +58,11 @@ gh の OAuth トークンに workflow スコープが無く push できなかっ
 `git add .github && git commit && git push` で自動デプロイに切り替えられる
 （その後 Pages の Source を「GitHub Actions」に変更）。
 
+## 最寄り地点の区域区分・用途地域バッジ（2026-09-11）
+
+「近くの公示・基準地点」の各地点にも `lib/youto.js` の判定を当て、調整区域は赤バッジ、
+それ以外は「市街化／非線引き／都市計画区域外」バッジ＋用途地域名（分かる場合）を表示する（対応県のみ）。
+
 ## 物件ページからの取り込み（URLパラメータ・2026-09-11）
 
 `?addr=住所&price=万円&area=㎡&unit=m2|tsubo&src=元ページURL&memo=任意` で開くと、

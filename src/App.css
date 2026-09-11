@@ -583,6 +583,18 @@ button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-v
   color: #b3261e;
 }
 
+/* 最寄り地点の区域区分・用途地域 */
+.point-zoning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.youto-name {
+  font-size: 0.78rem;
+  color: #55705c;
+}
+
 /* 保存リストの区域区分バッジ */
 .badge.chosei {
   background: #b3261e;
