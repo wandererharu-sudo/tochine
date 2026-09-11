@@ -18,11 +18,11 @@ import FinancingCard from './components/FinancingCard'
 import DetailSection from './components/DetailSection'
 import { syncInitialCosts, restoreInitialCosts, effectiveRental, financing } from './lib/costs'
 import { geocode } from './lib/geocode'
-import { nearestPoints } from './lib/geo'
+import { nearestPoints, haversine } from './lib/geo'
 import { ROSENKA_RATIO, CHOUSEI_DEFAULT, evaluate, taxEstimate, tsuboToM2 } from './lib/tax'
 import { PREFS, prefCodeFromAddress } from './lib/prefecture'
 import { lookupZoning } from './lib/youto'
-import { regionalAdjustment } from './lib/adjustment'
+import { regionalAdjustment, pickChouseiBase, kuikiOfPoint, normalizeKanou } from './lib/adjustment'
 import { readImportParams, importedRental } from './lib/importParams'
 import './App.css'
 
@@ -240,26 +240,45 @@ export default function App() {
     return nearestPoints(pool, location.lat, location.lon, 5)
   }, [points, location, residentialOnly])
 
+  // 対象地が調整区域なら、3km以内の「調整区域内の住宅地点」を基準にする（地点に区域コード k がある県のみ）
+  const chouseiBase = useMemo(() => {
+    if (kuiki !== '市街化調整区域' || !points || !location) return null
+    return pickChouseiBase(points, location.lat, location.lon, haversine)
+  }, [kuiki, points, location])
+  // 一覧・地図には最寄り5件＋（入っていなければ）調整区域の基準地点を並べる
+  const listPoints = useMemo(() => {
+    if (!nearest) return null
+    if (!chouseiBase || nearest.some((p) => p.n === chouseiBase.n && p.s === chouseiBase.s)) return nearest
+    return [...nearest, chouseiBase]
+  }, [nearest, chouseiBase])
+
   // 最寄り地点それぞれの区域区分・用途地域（対応県のみ）。ファイルは lib/youto.js 側でキャッシュされるので地点数分でも軽い
   useEffect(() => {
-    if (!nearest || !prefCode) { setPointZoning({}); return }
+    if (!listPoints || !prefCode) { setPointZoning({}); return }
     let alive = true
     setPointZoning({})
     Promise.all(
-      [...nearest, ...(selectedPoint && Number.isFinite(selectedPoint.lat) ? [selectedPoint] : [])]
+      [...listPoints, ...(selectedPoint && Number.isFinite(selectedPoint.lat) ? [selectedPoint] : [])]
         .map((p) => lookupZoning(p.lat, p.lon, prefCode).then((res) => [p.n + p.s, res]))
     ).then((entries) => {
       if (alive) setPointZoning(Object.fromEntries(entries))
     })
     return () => { alive = false }
-  }, [nearest, prefCode, selectedPoint])
+  }, [listPoints, prefCode, selectedPoint])
 
-  const current = selectedPoint ?? (nearest && nearest[0]) ?? null
+  const current = selectedPoint ?? chouseiBase ?? (nearest && nearest[0]) ?? null
 
   // 市街化調整区域なら周辺公示の単価に減価補正を掛けた概算で全カードを計算する
   // （路線価図の実数値を入力した場合はそちらが正なので補正は掛からない）
-  const referenceZoning = current ? pointZoning[current.n + current.s] : null
+  // 基準地点の区域: 地点データの区域コード（tag_kuiki.py）を優先、無ければ個別判定の結果
+  const pointKuiki = kuikiOfPoint(current)
+  const referenceZoning = current
+    ? (pointKuiki ? { status: 'ok', kuiki: pointKuiki } : pointZoning[current.n + current.s])
+    : null
   const correction = regionalAdjustment(kuiki, referenceZoning, chousei)
+  const correctionView = current && correction.reason
+    ? { ...correction, reason: `${correction.reason}。基準地点: ${current.n}${Number.isFinite(current.dist) ? `（${current.dist >= 1000 ? (current.dist / 1000).toFixed(1) + 'km' : Math.round(current.dist) + 'm'}）` : ''}` }
+    : correction
   const chouseiRatio = correction.ratio
   const adjusted =
     current && chouseiRatio !== 1
@@ -311,9 +330,9 @@ export default function App() {
       costs,
       chintai: rental,
       referenceZoning,
-      adjustmentVersion: 2,
+      adjustmentVersion: 3,
       memo: imported?.src ? [imported.memo, imported.src].filter(Boolean).join(' ') : '',
-      point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p, lat: current.lat, lon: current.lon } : null,
+      point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p, lat: current.lat, lon: current.lon, k: current.k } : null,
       date: new Date().toISOString().slice(0, 10),
     }
     const i = saved.findIndex((s) => s.title === item.title)
@@ -335,7 +354,7 @@ export default function App() {
     if (it.point && Number.isFinite(it.point.lat) && Number.isFinite(it.point.lon)) setSelectedPoint(it.point)
     setKuiki(it.kuiki ?? '')
     setYouto(it.youto ?? '')
-    setChousei(it.chousei ?? CHOUSEI_DEFAULT)
+    setChousei(normalizeKanou(it.chousei))
     const restoredCosts = { ...EMPTY_COSTS, ...it.costs }
     setCosts(restoredCosts)
     setChintai(restoreInitialCosts(it.chintai, EMPTY_CHINTAI, restoredCosts))
@@ -389,7 +408,7 @@ export default function App() {
         unit={unit} price={price} actualRosenka={actualRosenka} />}
       <FinancingCard price={price} chintai={rental} costs={costs}
         onChange={changeChintai} onCostsChange={changeCosts} />
-      {correction.reason && <p className="hint">{actualRosenka ? '入力した路線価を優先し、区域補正は追加しません。' : correction.reason} 区域判定は年版データによる参考値です。</p>}
+      {correctionView.reason && <p className="hint">{actualRosenka ? '入力した路線価を優先し、区域補正は追加しません。' : correctionView.reason} 区域判定は年版データによる参考値です。</p>}
 
       {location && (
         <p className="location-line">
@@ -422,7 +441,7 @@ export default function App() {
       {mapVisible && location && nearest && (
         <MapPanel
           location={location}
-          points={nearest}
+          points={listPoints}
           selected={current}
           onSelect={setSelectedPoint}
         />
@@ -430,7 +449,7 @@ export default function App() {
 
       {nearest && (
         <PointList
-          points={nearest}
+          points={listPoints}
           zoning={pointZoning}
           selected={current}
           onSelect={setSelectedPoint}
@@ -451,7 +470,7 @@ export default function App() {
           onYoutoChange={setYouto}
           onChouseiChange={setChousei}
           auto={zoningAuto}
-          correction={correction}
+          correction={correctionView}
         />
       )}
 

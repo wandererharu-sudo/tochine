@@ -8,7 +8,7 @@ function AutoLine({ auto }) {
   if (auto.status === 'unsupported') {
     return (
       <p className="auto-line muted">
-        自動判定はこの県は未対応です（対応: 愛知）。市町村の都市計画図でご確認ください。
+        自動判定はこの県は未対応です（対応: 愛知・岐阜・三重）。市町村の都市計画図でご確認ください。
       </p>
     )
   }
@@ -67,16 +67,16 @@ export default function ZoningCard({ kuiki, youto, chousei, onKuikiChange, onYou
       {kuiki === '市街化調整区域' && (
         <>
           <div className="area-row">
-            <label htmlFor="chousei">市街化区域の地点を使う場合の補正</label>
-            <select id="chousei" value={chousei} disabled={correction?.ratio === 1} onChange={(e) => onChouseiChange(e.target.value)}>
+            <label htmlFor="chousei">建築の可否</label>
+            <select id="chousei" value={chousei} onChange={(e) => onChouseiChange(e.target.value)}>
               {CHOUSEI_OPTIONS.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
           </div>
           <p className="warn-text">
-            {correction?.reason}。参考地点も調整区域なら、区域を理由にさらに減価しません。
-            接道・再建築可否など個別条件の比較は別途必要です。
+            ⚠ 市街化調整区域: 建替えには原則許可が必要です。いまの掛け率 ×{correction?.ratio}。
+            {correction?.reason}。建築できるかは市役所の開発許可窓口で確認してください。
           </p>
         </>
       )}

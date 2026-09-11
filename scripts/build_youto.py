@@ -176,6 +176,10 @@ def main(prefs: list[str]) -> None:
     index_path.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
     print("index.json 更新:", ", ".join(sorted(index.keys())))
 
+    # 公示・基準地点に区域区分コード k を付ける（調整区域の補正で「調整区域内の地点」を探すため）
+    from tag_kuiki import tag_all
+    tag_all(prefs)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:] or ["23"])

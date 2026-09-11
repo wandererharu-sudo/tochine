@@ -175,6 +175,10 @@ def main() -> None:
     print(f"完了: {len(counts)}都道府県 / 計{index['total']:,}地点 / 約{total_bytes/1024/1024:.1f}MB")
     print(f"出力先: {OUT_DIR}")
 
+    # 用途地域データのある県は、各地点に区域区分コード k を付け直す（調整区域の補正で使う）
+    from tag_kuiki import tag_all
+    tag_all()
+
 
 if __name__ == "__main__":
     main()
