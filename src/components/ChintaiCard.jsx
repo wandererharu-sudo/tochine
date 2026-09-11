@@ -3,7 +3,7 @@ import { evaluate, taxEstimate, formatYen, tsuboToM2 } from '../lib/tax'
 // 賃貸収支の概算（築古戸建て投資向け）
 // 固定資産税は税額カードと同じ計算値（住宅用地特例あり側・市街化区域以外は都計税なし）を年間経費に自動計上する
 // 借入欄に入力すると元利均等の月返済・返済比率・返済後手取りも出す
-export default function ChintaiCard({ point, area, unit, actualRosenka, price, kuiki, chintai, onChange }) {
+export default function ChintaiCard({ point, area, unit, actualRosenka, price, kuiki, chintai, costs, onCostsChange, onChange }) {
   const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0
   if (!(areaM2 > 0)) return null
   const ev = evaluate(point.p, areaM2, actualRosenka)
@@ -12,6 +12,7 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
   const koteiTax = tax ? (noToshikei ? tax.residential.kotei : tax.residential.total) : 0
 
   const set = (key) => (e) => onChange({ ...chintai, [key]: e.target.value })
+  const linked = chintai.shokiMode === 'linked'
 
   const kakaku = (Number(chintai.kakaku) || Number(price) || 0) * 10000
   const shoki = (Number(chintai.shoki) || 0) * 10000
@@ -78,18 +79,46 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
         />
         <span>万円/月</span>
       </div>
+      <div className="initial-costs">
+      <label className="cost-link-toggle">
+        <input type="checkbox" checked={linked} onChange={(e) => onChange({
+          ...chintai, shokiMode: e.target.checked ? 'linked' : 'manual',
+          manualShoki: linked ? chintai.manualShoki : chintai.shoki,
+          shoki: e.target.checked ? chintai.shoki : (chintai.manualShoki || chintai.shoki),
+        })} />
+        リフォーム・残置物処分を買値検討と連動
+      </label>
+      {linked && <>
+        { [['リフォーム', 'reform'], ['残置物処分', 'zanchi']].map(([label, key]) => (
+          <div className="area-row" key={key}>
+            <label htmlFor={`ch-${key}`}>{label}</label>
+            <input id={`ch-${key}`} type="number" inputMode="decimal" min="0" step="any"
+              value={costs[key]} placeholder="0" onChange={(e) => onCostsChange({ ...costs, [key]: e.target.value })} />
+            <span>万円</span>
+          </div>
+        ))}
+        <div className="area-row">
+          <label htmlFor="ch-shohiyo">諸費用・その他</label>
+          <input id="ch-shohiyo" type="number" inputMode="decimal" min="0" step="any"
+            value={chintai.shohiyo} onChange={set('shohiyo')} placeholder="0" />
+          <span>万円</span>
+        </div>
+        <p className="hint">リフォーム＋残置物処分＋諸費用・その他を自動合計。解体費と安全代は含みません。</p>
+      </>}
       <div className="area-row">
-        <label htmlFor="ch-shoki">初期費用</label>
+        <label htmlFor="ch-shoki">初期費用合計</label>
         <input
           id="ch-shoki"
           type="number"
           inputMode="decimal"
           min="0"
           value={chintai.shoki}
+          readOnly={linked}
           onChange={set('shoki')}
           placeholder="150"
         />
-        <span>万円 <span className="note">リフォーム・諸費用など</span></span>
+        <span>万円 <span className="note">{linked ? '自動合計' : '手入力の合計（保存済みの金額を保持）'}</span></span>
+      </div>
       </div>
       {kakaku > 0 && (
         <p className="shohi-hint">
@@ -97,16 +126,16 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
           <span className="note">
             ＝仲介 {formatYen(chukai)}＋登記 {formatYen(touki)}＋不動産取得税 {formatYen(shutoku)}＋印紙 {formatYen(inshi)}
           </span>
-          <button
+          {linked && <button
             type="button"
             className="copy-btn"
             onClick={() =>
-              onChange({ ...chintai, shoki: String(Math.ceil(shohiSum / 10000)) })
+              onChange({ ...chintai, shohiyo: String(Math.ceil(shohiSum / 10000)) })
             }
           >
-            初期費用欄へ入れる
-          </button>
-          <span className="note">（リフォーム分は足してください）</span>
+            諸費用・その他をこの概算に置き換える
+          </button>}
+          <span className="note">{linked ? 'リフォーム・残置物処分の入力は保持します。' : '連動をオンにすると、リフォームと諸費用を別々に入力できます。'}</span>
         </p>
       )}
       <div className="area-row">

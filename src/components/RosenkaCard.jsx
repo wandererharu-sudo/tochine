@@ -77,7 +77,7 @@ export default function RosenkaCard({ prefCode, title, value, autoValue, onChang
         <span>千円/㎡</span>
         {value !== '' ? (
           <span className="rosenka-mode manual">
-            ✓ 図面の実数値で計算中
+            入力した路線価で計算中
             <button type="button" className="rosenka-clear" onClick={() => onChange('')}>
               自動に戻す
             </button>

@@ -24,14 +24,14 @@ export default function SashineCard({ point, area, unit, price, actualRosenka, c
 
   return (
     <section className="card">
-      <h2>指値逆算 <span className="sub">いくらまでなら買っていいか</span></h2>
+      <h2>指値逆算 <span className="sub">費用を反映した買値の目安</span></h2>
       <table className="val-table">
         <tbody>
           <tr>
             <th>
               土地値（時価の目安）
               {ev.isActual ? (
-                <span className="note">・実路線価ベース</span>
+                <span className="note">・入力した路線価ベース</span>
               ) : (
                 point.chousei && <span className="note">・調整区域補正×{point.chousei}</span>
               )}
@@ -47,6 +47,7 @@ export default function SashineCard({ point, area, unit, price, actualRosenka, c
                     type="number"
                     inputMode="decimal"
                     min="0"
+                    aria-label={label}
                     value={costs[key]}
                     onChange={set(key)}
                     placeholder="0"
@@ -66,6 +67,7 @@ export default function SashineCard({ point, area, unit, price, actualRosenka, c
                   inputMode="decimal"
                   min="0"
                   max="100"
+                  aria-label="安全代（％）"
                   value={costs.safety}
                   onChange={set('safety')}
                   placeholder="10"
@@ -76,7 +78,7 @@ export default function SashineCard({ point, area, unit, price, actualRosenka, c
             <td>{safety > 0 ? `−${formatYen(safety)}` : '─'}</td>
           </tr>
           <tr className="main-row">
-            <th>指値上限</th>
+            <th>費用反映後の指値目安</th>
             <td className="total">{formatYen(limit)}</td>
           </tr>
           {priceYen > 0 && (

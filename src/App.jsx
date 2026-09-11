@@ -12,6 +12,9 @@ import RosenkaCard from './components/RosenkaCard'
 import SavedList from './components/SavedList'
 import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
+import QuickSummary from './components/QuickSummary'
+import DetailSection from './components/DetailSection'
+import { syncInitialCosts, restoreInitialCosts } from './lib/costs'
 import { geocode } from './lib/geocode'
 import { nearestPoints } from './lib/geo'
 import { ROSENKA_RATIO, CHOUSEI_DEFAULT, evaluate, taxEstimate, tsuboToM2 } from './lib/tax'
@@ -43,6 +46,7 @@ function readImportParams() {
 const EMPTY_COSTS = { kaitai: '', zanchi: '', reform: '', safety: '10' } // 指値逆算の初期値（万円・%）
 const EMPTY_CHINTAI = {
   kakaku: '', yachin: '', shoki: '', keihi: '15', // 万円・%
+  shokiMode: 'linked', shohiyo: '', manualShoki: '',
   kariire: '', kinri: '2.0', kikan: '15', // 借入（任意）
 }
 
@@ -69,6 +73,7 @@ export default function App() {
   const [gpsLoading, setGpsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [mapVisible, setMapVisible] = useState(false)
   const [imported] = useState(() => readImportParams()) // URL取り込み元（物件ページ）
   const [saved, setSaved] = useState(() => {
     try {
@@ -78,6 +83,20 @@ export default function App() {
     }
   })
   const prefCache = useRef({}) // {code: points[]}
+  const requestId = useRef(0)
+
+  const changeCosts = (next) => {
+    setCosts(next)
+    setChintai((previous) => syncInitialCosts(previous, next))
+  }
+  const changeChintai = (next) => setChintai(syncInitialCosts(next, costs))
+  const openBuying = () => {
+    const section = document.getElementById('buying-details')
+    if (!section) return
+    section.open = true
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    section.querySelector('summary')?.focus({ preventScroll: true })
+  }
 
   const persistSaved = (list) => {
     setSaved(list)
@@ -135,6 +154,7 @@ export default function App() {
   const handleSelect = async (cand, forcedCode = null) => {
     setCandidates([])
     setLocation(cand)
+    setPoints(null)
     setSelectedPoint(null)
     setRosenkaInput('') // 場所が変われば前面道路も変わるのでリセット
     setKuiki('')
@@ -147,6 +167,7 @@ export default function App() {
     setPrefCode(code)
     setNeedPrefSelect(!code)
     if (!code) {
+      requestId.current += 1
       setPoints(null)
       return
     }
@@ -186,11 +207,16 @@ export default function App() {
   }
 
   const selectPref = async (code) => {
+    const request = ++requestId.current
+    setPoints(null)
+    setSelectedPoint(null)
     setPrefCode(code)
     setNeedPrefSelect(false)
     try {
-      setPoints(await loadPref(code))
+      const next = await loadPref(code)
+      if (request === requestId.current) setPoints(next)
     } catch {
+      if (request !== requestId.current) return
       setError('地価データの読み込みに失敗しました。通信環境をご確認ください。')
       setPoints(null)
     }
@@ -273,8 +299,9 @@ export default function App() {
     setKuiki(it.kuiki ?? '')
     setYouto(it.youto ?? '')
     setChousei(it.chousei ?? CHOUSEI_DEFAULT)
-    setCosts(it.costs ?? EMPTY_COSTS)
-    setChintai({ ...EMPTY_CHINTAI, ...(it.chintai ?? {}) }) // 旧保存データに無いキーは初期値で補完
+    const restoredCosts = { ...EMPTY_COSTS, ...it.costs }
+    setCosts(restoredCosts)
+    setChintai(restoreInitialCosts(it.chintai, EMPTY_CHINTAI, restoredCosts))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -315,6 +342,12 @@ export default function App() {
         gpsLoading={gpsLoading}
       />
 
+      <QuickSummary point={adjusted} area={area} unit={unit} price={price}
+        actualRosenka={actualRosenka} kuiki={kuiki} onAreaChange={setArea}
+        onUnitChange={setUnit} onPriceChange={setPrice} onSave={saveCurrent}
+        savedFlash={savedFlash} canSave={!!location && !!current}
+        onDetails={openBuying} />
+
       {location && (
         <p className="location-line">
           📍 {location.title}
@@ -339,7 +372,11 @@ export default function App() {
         </p>
       )}
 
-      {location && nearest && (
+      <DetailSection id="land-details" title="土地値を詳しく調べる"
+        description="地図・参考地点・用途地域・路線価・評価額"
+        onToggle={(e) => { if (e.target === e.currentTarget) setMapVisible(e.currentTarget.open) }}>
+      {!location && <p className="hint">住所を検索すると地図や路線価を確認できます。</p>}
+      {mapVisible && location && nearest && (
         <MapPanel
           location={location}
           points={nearest}
@@ -378,17 +415,27 @@ export default function App() {
             point={adjusted}
             area={area}
             unit={unit}
-            onAreaChange={setArea}
-            onUnitChange={setUnit}
             years={meta}
             actualRosenka={actualRosenka}
           />
+        </>
+      )}
+      {location && prefCode && (
+        <RosenkaCard prefCode={prefCode} title={location.title} value={rosenkaInput}
+          autoValue={autoRosenka} onChange={setRosenkaInput} />
+      )}
+      {location && <ExternalLinks lat={location.lat} lon={location.lon} />}
+      </DetailSection>
+
+      <DetailSection id="buying-details" title="買値を検討する"
+        description="販売価格との差・解体費・リフォーム費・指値の目安">
+      {current && meta ? (
+        <>
           <PriceCompareCard
             point={adjusted}
             area={area}
             unit={unit}
             price={price}
-            onPriceChange={setPrice}
             actualRosenka={actualRosenka}
           />
           <SashineCard
@@ -398,8 +445,18 @@ export default function App() {
             price={price}
             actualRosenka={actualRosenka}
             costs={costs}
-            onChange={setCosts}
+            onChange={changeCosts}
           />
+          {!(Number(area) > 0) && <p className="hint">上の土地面積を入力すると、費用を検討できます。</p>}
+        </>
+      ) : <p className="hint">住所を検索すると買値を検討できます。</p>}
+      </DetailSection>
+
+      <DetailSection id="rental-details" title="貸した場合を見る"
+        description="家賃・初期費用・借入・手取り・税額">
+      {current && meta ? (
+        <>
+          {!(Number(area) > 0) && <p className="hint">上の土地面積を入力すると、賃貸収支を検討できます。</p>}
           <TaxCard
             point={adjusted}
             area={area}
@@ -415,23 +472,16 @@ export default function App() {
             price={price}
             kuiki={kuiki}
             chintai={chintai}
-            onChange={setChintai}
+            costs={costs}
+            onCostsChange={changeCosts}
+            onChange={changeChintai}
           />
           <button type="button" className="save-btn" onClick={saveCurrent}>
             {savedFlash ? '✓ 保存しました' : '💾 この土地を保存リストへ'}
           </button>
         </>
-      )}
-
-      {location && prefCode && (
-        <RosenkaCard
-          prefCode={prefCode}
-          title={location.title}
-          value={rosenkaInput}
-          autoValue={autoRosenka}
-          onChange={setRosenkaInput}
-        />
-      )}
+      ) : <p className="hint">住所を検索すると賃貸収支を検討できます。</p>}
+      </DetailSection>
 
       <SavedList
         items={saved}
@@ -441,8 +491,6 @@ export default function App() {
           persistSaved(saved.map((s) => (s.id === id ? { ...s, memo } : s)))
         }
       />
-
-      {location && <ExternalLinks lat={location.lat} lon={location.lon} />}
 
       <Disclaimer years={meta} />
     </div>

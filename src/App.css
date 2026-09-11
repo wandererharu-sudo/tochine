@@ -4,6 +4,33 @@
   padding: 16px 12px 40px;
 }
 
+.quick-summary { border: 1px solid #b8cec0; }
+.quick-result { background: #eef5ef; border-radius: 10px; padding: 16px; margin-top: 14px; }
+.quick-value { display: block; font-size: clamp(1.8rem, 7vw, 2.5rem); color: #274c3e; margin: 4px 0; overflow-wrap: anywhere; }
+.basis-tag { display: inline-block; font-size: .8rem; color: #35524a; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.quick-actions button { flex: 1 1 170px; margin: 0; min-height: 48px; }
+.secondary-btn { border: 1px solid #35524a; background: white; color: #35524a; border-radius: 8px; padding: 12px; font-size: 15px; cursor: pointer; }
+.save-btn:disabled { opacity: .5; cursor: default; }
+.detail-section { margin-bottom: 14px; border: 1px solid #d8e0d9; border-radius: 12px; background: white; scroll-margin-top: 12px; }
+.detail-section > summary { padding: 16px; min-height: 48px; cursor: pointer; color: #35524a; font-weight: bold; }
+.detail-section > summary > span { display: inline; }
+.detail-section > summary small { display: block; font-size: .8rem; color: #556055; font-weight: normal; margin-top: 5px; }
+.detail-section[open] > summary { border-bottom: 1px solid #e4eae4; }
+.detail-body { padding: 12px; }
+.detail-body > .card { padding: 8px 0 16px; box-shadow: none; border-radius: 0; border-bottom: 1px solid #e4eae4; }
+.initial-costs { border: 1px solid #d8e0d9; border-radius: 10px; padding: 12px; margin: 12px 0; }
+.cost-link-toggle { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: .88rem; margin-bottom: 10px; }
+.cost-link-toggle input { width: 20px; height: 20px; flex-shrink: 0; }
+.area-row input[readonly] { background: #eef5ef; border-color: transparent; font-weight: bold; }
+button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #a27116; outline-offset: 3px; }
+@media (max-width: 420px) {
+  .quick-summary .area-row label { flex-basis: 100%; }
+  .detail-body { padding: 8px; }
+  .cost-input { margin-left: 0; flex-wrap: wrap; }
+  .val-table td { white-space: normal; overflow-wrap: anywhere; }
+}
+
 .app-head h1 {
   margin: 8px 0 0;
   font-size: 1.5rem;

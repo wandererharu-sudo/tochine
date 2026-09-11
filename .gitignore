@@ -3,3 +3,5 @@ dist
 scripts/raw
 *.local
 .DS_Store
+.npm-cache
+確認.html
