@@ -13,6 +13,7 @@ import SavedList from './components/SavedList'
 import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
 import QuickSummary from './components/QuickSummary'
+import InheritanceValueCard from './components/InheritanceValueCard'
 import DetailSection from './components/DetailSection'
 import { syncInitialCosts, restoreInitialCosts, effectiveRental } from './lib/costs'
 import { geocode } from './lib/geocode'
@@ -383,6 +384,8 @@ export default function App() {
         onUnitChange={setUnit} onPriceChange={setPrice} onSave={saveCurrent}
         savedFlash={savedFlash} canSave={!!location && !!current}
         onDetails={openBuying} />
+      {(current || actualRosenka > 0) && <InheritanceValueCard point={adjusted} area={area}
+        unit={unit} price={price} actualRosenka={actualRosenka} />}
       {correction.reason && <p className="hint">{actualRosenka ? '入力した路線価を優先し、区域補正は追加しません。' : correction.reason} 区域判定は年版データによる参考値です。</p>}
 
       {location && (

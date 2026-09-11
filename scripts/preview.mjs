@@ -9,6 +9,7 @@ const result = await build({
       import { renderToStaticMarkup } from 'react-dom/server';
       import assert from 'node:assert/strict';
       import QuickSummary from './src/components/QuickSummary.jsx';
+      import InheritanceValueCard from './src/components/InheritanceValueCard.jsx';
       import DetailSection from './src/components/DetailSection.jsx';
       import ValuationCard from './src/components/ValuationCard.jsx';
       import PriceCompareCard from './src/components/PriceCompareCard.jsx';
@@ -25,6 +26,7 @@ const result = await build({
         <p className="import-note">表示サンプルです。金額は架空の条件で、入力・保存はできません。下の詳細欄は開閉できます。公開サイトは未更新です。</p>
         <fieldset disabled style={{border: 0, margin: 0, padding: 0, minWidth: 0}}>
           <QuickSummary {...quick} />
+          <InheritanceValueCard {...shared} />
           <DetailSection id="land-details" title="土地値を詳しく調べる" description="地図・参考地点・用途地域・路線価・評価額">
             <ValuationCard {...shared} years={{koji_year: 2026, chosa_year: 2025}} />
             <p className="hint">実際のアプリでは、ここに地図・用途地域・路線価図も表示します。</p>
@@ -46,6 +48,18 @@ const result = await build({
       assert.equal(new Set(ids).size, ids.length, '入力IDが重複していない');
       assert.ok(renderToStaticMarkup(<QuickSummary {...quick} point={null} area="" price="" canSave={false} />).includes('住所を検索'));
       assert.ok(renderToStaticMarkup(<QuickSummary {...quick} actualRosenka={32000} />).includes('入力した路線価から計算'));
+      const inheritance = renderToStaticMarkup(<InheritanceValueCard {...shared} point={{p:44100}} area="65.96" price="280" />);
+      assert.ok(inheritance.includes('233万円'));
+      assert.ok(inheritance.includes('163万円'));
+      assert.ok(inheritance.includes('186万円'));
+      assert.ok(inheritance.includes('実際の路線価は未確認'));
+      const manual = renderToStaticMarkup(<InheritanceValueCard {...shared} point={{p:10000}} area="65.96" actualRosenka={35000} />);
+      assert.ok(manual.includes('231万円'));
+      assert.ok(manual.includes('入力した相続税路線価'));
+      assert.ok(!manual.includes('実際の路線価は未確認'));
+      const empty = renderToStaticMarkup(<InheritanceValueCard {...shared} area="" />);
+      assert.ok(empty.includes('土地面積を入れると'));
+      assert.ok(!empty.includes('NaN'));
     `,
     resolveDir: process.cwd(), loader: 'jsx',
   },

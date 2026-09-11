@@ -34,6 +34,8 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
               ? evaluate((it.point?.p ?? 0) * ratio, areaM2, actual).jika
               : null
           const priceYen = (Number(it.price) || 0) * 10000
+          const inheritanceValue = !needsRefresh && areaM2 > 0 && (it.point || actual)
+            ? evaluate((it.point?.p ?? 0) * ratio, areaM2, actual).rosenka : null
           const j = jika && priceYen > 0 ? judge(priceYen / jika) : null
           // 賃貸収支が入力済みなら表面利回りも一覧に出す（購入価格が空なら販売価格を使用）
           const ch = it.chintai
@@ -58,6 +60,7 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
                   {needsRefresh && ' ／ 補正方式更新：開いて再計算してください'}
                   {priceYen > 0 && ` ／ 販売 ${formatYen(priceYen)}`}
                   {jika && ` ／ 土地値 ${formatYen(Math.round(jika))}`}
+                  {inheritanceValue != null && ` ／ 路線価目安 ${formatYen(inheritanceValue)}`}
                   {j && `（${Math.round((priceYen / jika) * 100)}%）`}
                   {omote !== null && ` ／ 家賃 ${formatYen(yachin)}・表面 ${omote.toFixed(1)}%`}
                 </span>

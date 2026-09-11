@@ -5,6 +5,17 @@
 }
 
 .quick-summary { border: 1px solid #b8cec0; }
+.inheritance-card { border: 1px solid #c6cfe1; }
+.inheritance-total { display: grid; gap: 4px; padding: 14px; background: #f1f4fa; border-radius: 10px; color: #334b6b; }
+.inheritance-total strong { font-size: 1.9rem; overflow-wrap: anywhere; }
+.inheritance-total span { font-size: .85rem; }
+.inheritance-trials { margin-top: 14px; }
+.inheritance-trials summary { min-height: 44px; cursor: pointer; color: #334b6b; font-size: .9rem; }
+.inheritance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.inheritance-grid > div { padding: 12px; border: 1px solid #d9e0ed; border-radius: 8px; }
+.inheritance-grid span { display: block; font-size: .8rem; }
+.inheritance-grid strong { display: block; font-size: 1.25rem; overflow-wrap: anywhere; }
+@media (max-width: 380px) { .inheritance-grid { grid-template-columns: 1fr; } }
 .quick-result { background: #eef5ef; border-radius: 10px; padding: 16px; margin-top: 14px; }
 .quick-value { display: block; font-size: clamp(1.8rem, 7vw, 2.5rem); color: #274c3e; margin: 4px 0; overflow-wrap: anywhere; }
 .basis-tag { display: inline-block; font-size: .8rem; color: #35524a; }
