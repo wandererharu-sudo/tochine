@@ -19,6 +19,7 @@ import { geocode } from './lib/geocode'
 import { nearestPoints } from './lib/geo'
 import { ROSENKA_RATIO, CHOUSEI_DEFAULT, evaluate, taxEstimate, tsuboToM2 } from './lib/tax'
 import { PREFS, prefCodeFromAddress } from './lib/prefecture'
+import { lookupZoning } from './lib/youto'
 import './App.css'
 
 const DATA_BASE = `${import.meta.env.BASE_URL}data/`
@@ -67,6 +68,8 @@ export default function App() {
   const [rosenkaInput, setRosenkaInput] = useState('') // 路線価図で読んだ実数値（千円/㎡）
   const [kuiki, setKuiki] = useState('') // 区域区分（手入力・市街化調整区域の警戒用）
   const [youto, setYouto] = useState('') // 用途地域（手入力）
+  const [zoningAuto, setZoningAuto] = useState(null) // 用途地域の自動判定結果（lib/youto.js）
+  const zoningReq = useRef(0) // 連続検索時に古い判定結果で上書きしないための通し番号
   const [chousei, setChousei] = useState(CHOUSEI_DEFAULT) // 調整区域の減価補正率
   const [costs, setCosts] = useState(EMPTY_COSTS) // 指値逆算の費用入力
   const [chintai, setChintai] = useState(EMPTY_CHINTAI) // 賃貸収支の入力
@@ -166,12 +169,27 @@ export default function App() {
     const code = forcedCode ?? prefCodeFromAddress(cand.title)
     setPrefCode(code)
     setNeedPrefSelect(!code)
+    runZoningLookup(cand.lat, cand.lon, code)
     if (!code) {
       requestId.current += 1
       setPoints(null)
       return
     }
     await selectPref(code)
+  }
+
+  // 用途地域・区域区分の自動判定（対応県のみ）。手入力が空のときだけセレクトに反映する
+  const runZoningLookup = (lat, lon, code) => {
+    const id = ++zoningReq.current
+    setZoningAuto({ status: 'loading' })
+    lookupZoning(lat, lon, code).then((res) => {
+      if (id !== zoningReq.current) return
+      setZoningAuto(res)
+      if (res.status === 'ok') {
+        if (res.kuiki) setKuiki((prev) => prev || res.kuiki)
+        if (res.youto) setYouto((prev) => prev || res.youto)
+      }
+    })
   }
 
   // ⑤現在地から検索: geolocation → GSI逆ジオコーダで市区町村コード → 県判定
@@ -406,6 +424,7 @@ export default function App() {
           onKuikiChange={setKuiki}
           onYoutoChange={setYouto}
           onChouseiChange={setChousei}
+          auto={zoningAuto}
         />
       )}
 
