@@ -1,4 +1,5 @@
 import { evaluate, taxEstimate, formatYen, tsuboToM2 } from '../lib/tax'
+import { purchaseCosts } from '../lib/costs'
 
 // 賃貸収支の概算（築古戸建て投資向け）
 // 固定資産税は税額カードと同じ計算値（住宅用地特例あり側・市街化区域以外は都計税なし）を年間経費に自動計上する
@@ -27,11 +28,7 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
 
   // 諸費用の参考概算（購入時にかかる主なもの・建物分の税は評価不明のため土地分のみ）
   // 登記=登録免許税（土地の固定資産税評価額×2%）+司法書士報酬8万、取得税=評価額×1/2×3%（宅地特例）
-  const chukai = kakaku > 0 ? Math.round((kakaku * 0.03 + 60000) * 1.1) : 0
-  const touki = Math.round(ev.kotei * 0.02) + 80000
-  const shutoku = Math.round(ev.kotei * 0.5 * 0.03)
-  const inshi = 10000
-  const shohiSum = chukai + touki + shutoku + inshi
+  const { chukai, touki, shutoku, inshi, total: shohiSum } = purchaseCosts(kakaku, ev.kotei, chintai.brokerage)
 
   // 借入（元利均等・任意入力）
   const kariire = (Number(chintai.kariire) || 0) * 10000
@@ -79,6 +76,12 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
         />
         <span>万円/月</span>
       </div>
+      <label className="cost-link-toggle">
+        <input type="checkbox" checked={chintai.brokerage === 'none'}
+          onChange={(e) => onChange({ ...chintai, brokerage: e.target.checked ? 'none' : 'estimate' })} />
+        仲介手数料不要（売主との直接取引など）
+      </label>
+      <p className="hint">掲載条件を確認して切り替えてください。諸費用を概算連動中なら、初期費用合計にも自動反映します。</p>
       <div className="initial-costs">
       <label className="cost-link-toggle">
         <input type="checkbox" checked={linked} onChange={(e) => onChange({
@@ -100,9 +103,10 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
         <div className="area-row">
           <label htmlFor="ch-shohiyo">諸費用・その他</label>
           <input id="ch-shohiyo" type="number" inputMode="decimal" min="0" step="any"
-            value={chintai.shohiyo} onChange={set('shohiyo')} placeholder="0" />
+            value={chintai.shohiyo} onChange={(e) => onChange({ ...chintai, shohiyo: e.target.value, shohiyoSource: 'manual' })} placeholder="0" />
           <span>万円</span>
         </div>
+        {chintai.shohiyoSource === 'estimate' && <p className="hint">諸費用は概算連動中。購入価格・仲介手数料の設定変更に追従します。金額を手入力すると連動を解除します。</p>}
         <p className="hint">リフォーム＋残置物処分＋諸費用・その他を自動合計。解体費と安全代は含みません。</p>
       </>}
       <div className="area-row">
@@ -130,10 +134,10 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
             type="button"
             className="copy-btn"
             onClick={() =>
-              onChange({ ...chintai, shohiyo: String(Math.ceil(shohiSum / 10000)) })
+              onChange({ ...chintai, shohiyo: String(Math.ceil(shohiSum / 10000)), shohiyoSource: 'estimate' })
             }
           >
-            諸費用・その他をこの概算に置き換える
+            諸費用・その他を概算と連動する
           </button>}
           <span className="note">{linked ? 'リフォーム・残置物処分の入力は保持します。' : '連動をオンにすると、リフォームと諸費用を別々に入力できます。'}</span>
         </p>

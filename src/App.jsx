@@ -14,40 +14,24 @@ import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
 import QuickSummary from './components/QuickSummary'
 import DetailSection from './components/DetailSection'
-import { syncInitialCosts, restoreInitialCosts } from './lib/costs'
+import { syncInitialCosts, restoreInitialCosts, effectiveRental } from './lib/costs'
 import { geocode } from './lib/geocode'
 import { nearestPoints } from './lib/geo'
 import { ROSENKA_RATIO, CHOUSEI_DEFAULT, evaluate, taxEstimate, tsuboToM2 } from './lib/tax'
 import { PREFS, prefCodeFromAddress } from './lib/prefecture'
 import { lookupZoning } from './lib/youto'
+import { regionalAdjustment } from './lib/adjustment'
+import { readImportParams, importedRental } from './lib/importParams'
 import './App.css'
 
 const DATA_BASE = `${import.meta.env.BASE_URL}data/`
 // URLパラメータからの自動入力（ブックマークレット／みこ経由の取り込み用）
 // 例: ?addr=愛知県常滑市新開町1-2&price=1980&area=165.3&unit=m2&src=https://suumo.jp/...
-function readImportParams() {
-  try {
-    const q = new URLSearchParams(window.location.search)
-    const addr = (q.get('addr') || '').trim()
-    if (!addr) return null
-    const num = (v) => (v && /^[\d.]+$/.test(v.replace(/,/g, '')) ? v.replace(/,/g, '') : '')
-    return {
-      addr,
-      price: num(q.get('price')),
-      area: num(q.get('area')),
-      unit: q.get('unit') === 'tsubo' ? 'tsubo' : 'm2',
-      src: (q.get('src') || '').trim(),
-      memo: (q.get('memo') || '').trim(),
-    }
-  } catch {
-    return null
-  }
-}
-
 const EMPTY_COSTS = { kaitai: '', zanchi: '', reform: '', safety: '10' } // 指値逆算の初期値（万円・%）
 const EMPTY_CHINTAI = {
   kakaku: '', yachin: '', shoki: '', keihi: '15', // 万円・%
   shokiMode: 'linked', shohiyo: '', manualShoki: '',
+  brokerage: 'estimate', shohiyoSource: 'manual',
   kariire: '', kinri: '2.0', kikan: '15', // 借入（任意）
 }
 
@@ -78,7 +62,7 @@ export default function App() {
   const [copied, setCopied] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
   const [mapVisible, setMapVisible] = useState(false)
-  const [imported] = useState(() => readImportParams()) // URL取り込み元（物件ページ）
+  const [imported] = useState(() => readImportParams(window.location.search)) // URL取り込み元（物件ページ）
   const [saved, setSaved] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('tochine_saved')) ?? []
@@ -87,7 +71,9 @@ export default function App() {
     }
   })
   const prefCache = useRef({}) // {code: points[]}
+  const pendingImport = useRef(null)
   const requestId = useRef(0)
+  const searchId = useRef(0)
 
   const changeCosts = (next) => {
     setCosts(next)
@@ -120,29 +106,33 @@ export default function App() {
     if (imported.price) setPrice(imported.price)
     if (imported.area) setArea(imported.area)
     setUnit(imported.unit)
-    handleSearch(imported.addr)
+    handleSearch(imported.addr, imported)
     // 再読み込みで二重取り込みにならないようパラメータはURLから消す（表示用stateは保持）
     window.history.replaceState(null, '', window.location.pathname)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleSearch = async (query) => {
+  const handleSearch = async (query, importData = null) => {
+    const request = ++searchId.current
+    pendingImport.current = importData
     setLoading(true)
     setError('')
     setCandidates([])
     try {
       const results = await geocode(query)
+      if (request !== searchId.current) return
       if (results.length === 0) {
         setError('住所が見つかりませんでした。表記を変えて試すか、')
       } else if (results.length === 1) {
-        handleSelect(results[0])
+        await handleSelect(results[0])
       } else {
         setCandidates(results)
       }
     } catch {
+      if (request !== searchId.current) return
       setError('住所検索に失敗しました。時間をおいて再試行するか、')
     } finally {
-      setLoading(false)
+      if (request === searchId.current) setLoading(false)
     }
   }
 
@@ -165,7 +155,8 @@ export default function App() {
     setYouto('')
     setChousei(CHOUSEI_DEFAULT)
     setCosts(EMPTY_COSTS)
-    setChintai(EMPTY_CHINTAI)
+    setChintai(importedRental(EMPTY_CHINTAI, pendingImport.current))
+    pendingImport.current = null
     setError('')
     const code = forcedCode ?? prefCodeFromAddress(cand.title)
     setPrefCode(code)
@@ -253,22 +244,31 @@ export default function App() {
     let alive = true
     setPointZoning({})
     Promise.all(
-      nearest.map((p) => lookupZoning(p.lat, p.lon, prefCode).then((res) => [p.n + p.s, res]))
+      [...nearest, ...(selectedPoint && Number.isFinite(selectedPoint.lat) ? [selectedPoint] : [])]
+        .map((p) => lookupZoning(p.lat, p.lon, prefCode).then((res) => [p.n + p.s, res]))
     ).then((entries) => {
       if (alive) setPointZoning(Object.fromEntries(entries))
     })
     return () => { alive = false }
-  }, [nearest, prefCode])
+  }, [nearest, prefCode, selectedPoint])
 
   const current = selectedPoint ?? (nearest && nearest[0]) ?? null
 
   // 市街化調整区域なら周辺公示の単価に減価補正を掛けた概算で全カードを計算する
   // （路線価図の実数値を入力した場合はそちらが正なので補正は掛からない）
-  const chouseiRatio = kuiki === '市街化調整区域' ? Number(chousei) || 1 : null
+  const referenceZoning = current ? pointZoning[current.n + current.s] : null
+  const correction = regionalAdjustment(kuiki, referenceZoning, chousei)
+  const chouseiRatio = correction.ratio
   const adjusted =
-    current && chouseiRatio
-      ? { ...current, p: current.p * chouseiRatio, chousei }
+    current && chouseiRatio !== 1
+      ? { ...current, p: current.p * chouseiRatio, chousei: String(chouseiRatio) }
       : current
+
+  const actualRosenka = rosenkaInput !== '' ? (Number(rosenkaInput) || 0) * 1000 || null : null
+  const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0
+  const rental = effectiveRental(chintai, costs,
+    (Number(chintai.kakaku) || Number(price) || 0) * 10000,
+    adjusted ? evaluate(adjusted.p, areaM2, actualRosenka).kotei : 0)
 
   // 緯度経度をコピー（Googleマップ等にそのまま貼れる形式）
   const copyLatLon = async () => {
@@ -307,9 +307,11 @@ export default function App() {
       youto,
       chousei,
       costs,
-      chintai,
+      chintai: rental,
+      referenceZoning,
+      adjustmentVersion: 2,
       memo: imported?.src ? [imported.memo, imported.src].filter(Boolean).join(' ') : '',
-      point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p } : null,
+      point: current ? { n: current.n, s: current.s, u: current.u, a: current.a, p: current.p, lat: current.lat, lon: current.lon } : null,
       date: new Date().toISOString().slice(0, 10),
     }
     const i = saved.findIndex((s) => s.title === item.title)
@@ -328,6 +330,7 @@ export default function App() {
     setPrice(it.price ?? '')
     await handleSelect({ title: it.title, lat: it.lat, lon: it.lon }, it.prefCode ?? null)
     setRosenkaInput(it.rosenkaInput ?? '') // handleSelectがリセットするので後から復元
+    if (it.point && Number.isFinite(it.point.lat) && Number.isFinite(it.point.lon)) setSelectedPoint(it.point)
     setKuiki(it.kuiki ?? '')
     setYouto(it.youto ?? '')
     setChousei(it.chousei ?? CHOUSEI_DEFAULT)
@@ -340,7 +343,6 @@ export default function App() {
   // 路線価: 自動値＝近隣地点からの換算（千円/㎡）。手入力があればそちらが正となり
   // 全カードの計算が実路線価ベース（isActual）に切り替わる
   const autoRosenka = adjusted ? Math.round((adjusted.p * ROSENKA_RATIO) / 1000) : null
-  const actualRosenka = rosenkaInput !== '' ? (Number(rosenkaInput) || 0) * 1000 || null : null
 
   return (
     <div className="app">
@@ -354,6 +356,8 @@ export default function App() {
           物件ページから取り込み: {imported.addr}
           {imported.price && ` ／ ${imported.price}万円`}
           {imported.area && ` ／ ${imported.area}${imported.unit === 'tsubo' ? '坪' : '㎡'}`}
+          {imported.yachin && ` ／ 想定家賃${imported.yachin}万円/月`}
+          {imported.brokerage === 'none' && ' ／ 仲介手数料不要'}
           {imported.src && (
             <>
               {' '}
@@ -379,6 +383,7 @@ export default function App() {
         onUnitChange={setUnit} onPriceChange={setPrice} onSave={saveCurrent}
         savedFlash={savedFlash} canSave={!!location && !!current}
         onDetails={openBuying} />
+      {correction.reason && <p className="hint">{actualRosenka ? '入力した路線価を優先し、区域補正は追加しません。' : correction.reason} 区域判定は年版データによる参考値です。</p>}
 
       {location && (
         <p className="location-line">
@@ -440,6 +445,7 @@ export default function App() {
           onYoutoChange={setYouto}
           onChouseiChange={setChousei}
           auto={zoningAuto}
+          correction={correction}
         />
       )}
 
@@ -505,7 +511,7 @@ export default function App() {
             actualRosenka={actualRosenka}
             price={price}
             kuiki={kuiki}
-            chintai={chintai}
+            chintai={rental}
             costs={costs}
             onCostsChange={changeCosts}
             onChange={changeChintai}

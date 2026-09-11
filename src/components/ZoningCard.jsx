@@ -41,7 +41,7 @@ function AutoLine({ auto }) {
   )
 }
 
-export default function ZoningCard({ kuiki, youto, chousei, onKuikiChange, onYoutoChange, onChouseiChange, auto }) {
+export default function ZoningCard({ kuiki, youto, chousei, onKuikiChange, onYoutoChange, onChouseiChange, auto, correction }) {
   return (
     <section className="card">
       <h2>用途地域 <span className="sub">自動判定は参考値。違っていれば選び直してください</span></h2>
@@ -67,17 +67,16 @@ export default function ZoningCard({ kuiki, youto, chousei, onKuikiChange, onYou
       {kuiki === '市街化調整区域' && (
         <>
           <div className="area-row">
-            <label htmlFor="chousei">調整区域補正</label>
-            <select id="chousei" value={chousei} onChange={(e) => onChouseiChange(e.target.value)}>
+            <label htmlFor="chousei">市街化区域の地点を使う場合の補正</label>
+            <select id="chousei" value={chousei} disabled={correction?.ratio === 1} onChange={(e) => onChouseiChange(e.target.value)}>
               {CHOUSEI_OPTIONS.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
           </div>
           <p className="warn-text">
-            ⚠ 市街化調整区域: 原則として新築・建替えに許可が必要です。周辺の公示価格を
-            そのまま当てはめると高く出すぎるため、上の掛け率（×{chousei}）で
-            評価額・土地値・税額の概算に反映しています。
+            {correction?.reason}。参考地点も調整区域なら、区域を理由にさらに減価しません。
+            接道・再建築可否など個別条件の比較は別途必要です。
           </p>
         </>
       )}

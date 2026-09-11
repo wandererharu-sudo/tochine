@@ -20,9 +20,19 @@
   var man = pm ? (Number(pm[1] || 0) * 10000 + Number((pm[2] || '0').replace(/,/g, ''))) : '';
   var area = grab(['土地面積', '敷地面積', '地積'], /([\d,]+(?:\.\d+)?)\s*(?:㎡|m2|m²|平米)/) || '';
   area = area.replace(/,/g, '');
+  // 年間収入を月額万円へ換算。重複する見出し（楽待）にも対応する。
+  var detailsText = t.split(/この物件に似た|この物件を見た|この不動産会社の他の/)[0];
+  var rent = '';
+  var income = detailsText.match(/(?:想定年間収入|満室想定年収|年間収入)(?:[\s:：]*(?:想定年間収入|満室想定年収|年間収入))*[\s:：]*([\d,]+(?:\.\d+)?)\s*(万円|円)/);
+  var monthly = detailsText.match(/(?:想定月額賃料|想定家賃|月額賃料)[\s:：]*([\d,]+(?:\.\d+)?)\s*(万円|円)/);
+  if (monthly) rent = String(Number(monthly[1].replace(/,/g, '')) / (monthly[2] === '円' ? 10000 : 1));
+  else if (income) rent = String(Math.round(Number(income[1].replace(/,/g, '')) / (income[2] === '円' ? 10000 : 1) / 12 * 10000) / 10000);
+  // 関連物件一覧を判定対象に混ぜない。
+  var brokerage = /仲介手数料[\s:：]*(?:は[\s]*)?(?:不要|無料|なし|無し|0\s*円|０\s*円)/.test(detailsText) ? 'none' : '';
   if (!addr) { alert('住所が見つかりませんでした。土地値チェッカーを開くので住所を入れてください。'); }
   var u = 'https://wandererharu-sudo.github.io/tochine/?addr=' + encodeURIComponent(addr) +
     '&price=' + encodeURIComponent(man) + '&area=' + encodeURIComponent(area) + '&unit=m2' +
+    '&rent=' + encodeURIComponent(rent) + '&brokerage=' + encodeURIComponent(brokerage) +
     '&src=' + encodeURIComponent(location.href.split('#')[0]);
   window.open(u, '_blank') || (location.href = u);
 })();

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { judge, formatYen, tsuboToM2, evaluate } from '../lib/tax'
+import { regionalAdjustment } from '../lib/adjustment'
 
 // ④検討物件の保存・比較リスト（localStorage）
 export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
@@ -26,9 +27,10 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
           const areaM2 = it.unit === 'tsubo' ? tsuboToM2(Number(it.area) || 0) : Number(it.area) || 0
           const actual = (Number(it.rosenkaInput) || 0) * 1000 || null
           // 市街化調整区域は減価補正を掛けた概算（メイン表示と同じ扱い）
-          const ratio = it.kuiki === '市街化調整区域' ? Number(it.chousei) || 1 : 1
+          const needsRefresh = it.kuiki === '市街化調整区域' && !it.adjustmentVersion && !actual
+          const ratio = regionalAdjustment(it.kuiki, it.referenceZoning, it.chousei).ratio
           const jika =
-            areaM2 > 0 && (it.point || actual)
+            !needsRefresh && areaM2 > 0 && (it.point || actual)
               ? evaluate((it.point?.p ?? 0) * ratio, areaM2, actual).jika
               : null
           const priceYen = (Number(it.price) || 0) * 10000
@@ -53,6 +55,7 @@ export default function SavedList({ items, onLoad, onDelete, onMemoChange }) {
                 </span>
                 <span className="point-addr">
                   {it.area ? `${it.area}${it.unit === 'tsubo' ? '坪' : '㎡'}` : '面積未入力'}
+                  {needsRefresh && ' ／ 補正方式更新：開いて再計算してください'}
                   {priceYen > 0 && ` ／ 販売 ${formatYen(priceYen)}`}
                   {jika && ` ／ 土地値 ${formatYen(Math.round(jika))}`}
                   {j && `（${Math.round((priceYen / jika) * 100)}%）`}
