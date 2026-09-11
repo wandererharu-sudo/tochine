@@ -14,8 +14,9 @@ import ExternalLinks from './components/ExternalLinks'
 import Disclaimer from './components/Disclaimer'
 import QuickSummary from './components/QuickSummary'
 import InheritanceValueCard from './components/InheritanceValueCard'
+import FinancingCard from './components/FinancingCard'
 import DetailSection from './components/DetailSection'
-import { syncInitialCosts, restoreInitialCosts, effectiveRental } from './lib/costs'
+import { syncInitialCosts, restoreInitialCosts, effectiveRental, financing } from './lib/costs'
 import { geocode } from './lib/geocode'
 import { nearestPoints } from './lib/geo'
 import { ROSENKA_RATIO, CHOUSEI_DEFAULT, evaluate, taxEstimate, tsuboToM2 } from './lib/tax'
@@ -28,12 +29,12 @@ import './App.css'
 const DATA_BASE = `${import.meta.env.BASE_URL}data/`
 // URLパラメータからの自動入力（ブックマークレット／みこ経由の取り込み用）
 // 例: ?addr=愛知県常滑市新開町1-2&price=1980&area=165.3&unit=m2&src=https://suumo.jp/...
-const EMPTY_COSTS = { kaitai: '', zanchi: '', reform: '', safety: '10' } // 指値逆算の初期値（万円・%）
+const EMPTY_COSTS = { kaitai: '', zanchi: '', reform: '150', safety: '10' } // リフォームの仮予算150万円（変更可）
 const EMPTY_CHINTAI = {
   kakaku: '', yachin: '', shoki: '', keihi: '15', // 万円・%
   shokiMode: 'linked', shohiyo: '', manualShoki: '',
-  brokerage: 'estimate', shohiyoSource: 'manual',
-  kariire: '', kinri: '2.0', kikan: '15', // 借入（任意）
+  brokerage: 'estimate', shohiyoSource: 'estimate',
+  loanMode: 'all', kariire: '', kinri: '2.0', kikan: '15', // 全額借入を初期設定
 }
 
 export default function App() {
@@ -268,7 +269,7 @@ export default function App() {
   const actualRosenka = rosenkaInput !== '' ? (Number(rosenkaInput) || 0) * 1000 || null : null
   const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0
   const rental = effectiveRental(chintai, costs,
-    (Number(chintai.kakaku) || Number(price) || 0) * 10000,
+    financing(chintai, price).purchase * 10000,
     adjusted ? evaluate(adjusted.p, areaM2, actualRosenka).kotei : 0)
 
   // 緯度経度をコピー（Googleマップ等にそのまま貼れる形式）
@@ -386,6 +387,8 @@ export default function App() {
         onDetails={openBuying} />
       {(current || actualRosenka > 0) && <InheritanceValueCard point={adjusted} area={area}
         unit={unit} price={price} actualRosenka={actualRosenka} />}
+      <FinancingCard price={price} chintai={rental} costs={costs}
+        onChange={changeChintai} onCostsChange={changeCosts} />
       {correction.reason && <p className="hint">{actualRosenka ? '入力した路線価を優先し、区域補正は追加しません。' : correction.reason} 区域判定は年版データによる参考値です。</p>}
 
       {location && (
@@ -475,6 +478,7 @@ export default function App() {
       {current && meta ? (
         <>
           <PriceCompareCard
+            plannedPrice={rental.kakaku}
             point={adjusted}
             area={area}
             unit={unit}

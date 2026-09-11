@@ -8,7 +8,10 @@ export function syncInitialCosts(chintai, costs) {
 }
 
 export function restoreInitialCosts(saved, defaults, costs) {
-  return syncInitialCosts({ ...defaults, ...saved, shokiMode: saved?.shokiMode ?? 'manual' }, costs)
+  return syncInitialCosts({ ...defaults, ...saved,
+    shokiMode: saved?.shokiMode ?? 'manual',
+    shohiyoSource: saved ? (saved.shohiyoSource ?? 'manual') : defaults.shohiyoSource,
+    loanMode: saved ? (saved.loanMode ?? 'manual') : defaults.loanMode }, costs)
 }
 
 // 従来の参考式を維持し、仲介不要の取引では仲介分を除外する。
@@ -25,4 +28,13 @@ export function effectiveRental(chintai, costs, priceYen, assessedValue) {
   const next = chintai.shohiyoSource === 'estimate' && priceYen > 0
     ? { ...chintai, shohiyo: String(Math.ceil(fees.total / 10000)) } : chintai
   return syncInitialCosts(next, costs)
+}
+
+// 万円で計算。初期費用にはリフォームが含まれるため、重ねて加算しない。
+export function financing(chintai, price) {
+  const purchase = amount(chintai.kakaku === '' || chintai.kakaku == null ? price : chintai.kakaku)
+  const initial = amount(chintai.shoki)
+  const total = Math.round((purchase + initial) * 10000) / 10000
+  const loan = chintai.loanMode === 'all' ? total : amount(chintai.kariire)
+  return { purchase, initial, total, loan, equity: total - loan }
 }

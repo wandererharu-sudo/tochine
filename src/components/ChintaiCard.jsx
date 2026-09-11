@@ -1,5 +1,5 @@
 import { evaluate, taxEstimate, formatYen, tsuboToM2 } from '../lib/tax'
-import { purchaseCosts } from '../lib/costs'
+import { purchaseCosts, financing } from '../lib/costs'
 
 // 賃貸収支の概算（築古戸建て投資向け）
 // 固定資産税は税額カードと同じ計算値（住宅用地特例あり側・市街化区域以外は都計税なし）を年間経費に自動計上する
@@ -15,7 +15,8 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
   const set = (key) => (e) => onChange({ ...chintai, [key]: e.target.value })
   const linked = chintai.shokiMode === 'linked'
 
-  const kakaku = (Number(chintai.kakaku) || Number(price) || 0) * 10000
+  const plan = financing(chintai, price)
+  const kakaku = plan.purchase * 10000
   const shoki = (Number(chintai.shoki) || 0) * 10000
   const yachin = (Number(chintai.yachin) || 0) * 10000
   const keihiPct = Number(chintai.keihi) || 0
@@ -31,7 +32,7 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
   const { chukai, touki, shutoku, inshi, total: shohiSum } = purchaseCosts(kakaku, ev.kotei, chintai.brokerage)
 
   // 借入（元利均等・任意入力）
-  const kariire = (Number(chintai.kariire) || 0) * 10000
+  const kariire = plan.loan * 10000
   const kinri = Number(chintai.kinri) || 0
   const kikan = Number(chintai.kikan) || 0
   let monthly = 0
@@ -158,14 +159,16 @@ export default function ChintaiCard({ point, area, unit, actualRosenka, price, k
       </div>
 
       <div className="kariire-row">
-        <span className="kariire-head">借入で買う場合（任意）</span>
+        <span className="kariire-head">借入条件 {chintai.loanMode === 'all' ? '（購入＋初期費用を全額借入）' : '（借入額を手入力）'}</span>
         <span className="cost-input">
           借入額
           <input
             type="number"
             inputMode="decimal"
             min="0"
-            value={chintai.kariire}
+            aria-label="借入額（万円）"
+            value={chintai.loanMode === 'all' ? plan.loan : chintai.kariire}
+            readOnly={chintai.loanMode === 'all'}
             onChange={set('kariire')}
             placeholder="0"
           />

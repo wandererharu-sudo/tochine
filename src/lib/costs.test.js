@@ -1,6 +1,30 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { syncInitialCosts, restoreInitialCosts, purchaseCosts, effectiveRental } from './costs.js'
+import { syncInitialCosts, restoreInitialCosts, purchaseCosts, effectiveRental, financing } from './costs.js'
+
+test('全額借入は購入・リフォーム・残置物・諸費用を一度ずつ合計し変更にも追従', () => {
+  const base = { kakaku: '', shokiMode: 'linked', shohiyoSource: 'estimate', brokerage: 'none', loanMode: 'all' }
+  const costs = { reform: '150', zanchi: '0' }
+  const rental = effectiveRental(base, costs, 2800000, 2036185)
+  assert.equal(rental.shohiyo, '17')
+  assert.deepEqual(financing(rental, '280'), { purchase: 280, initial: 167, total: 447, loan: 447, equity: 0 })
+  const changed = effectiveRental(rental, { ...costs, reform: '200.5' }, 3000000, 2036185)
+  assert.equal(financing(changed, '300').loan, 517.5)
+  const zero = effectiveRental(rental, { ...costs, reform: '0' }, 2800000, 2036185)
+  assert.equal(financing(zero, '280').loan, 297)
+  assert.equal(financing({ ...rental, kakaku: '250' }, '280').loan, 417)
+  assert.equal(financing({ ...rental, kakaku: '0' }, '280').purchase, 0)
+})
+
+test('借入の手入力と保存復元は保持し全額モードも復元できる', () => {
+  const defaults = { loanMode: 'all', shohiyoSource: 'estimate' }
+  const old = restoreInitialCosts({ shoki: '150', kariire: '300', shohiyo: '25' }, defaults, { reform: '150' })
+  assert.equal(old.loanMode, 'manual')
+  assert.equal(old.shohiyoSource, 'manual')
+  assert.equal(financing(old, '280').loan, 300)
+  const saved = restoreInitialCosts(JSON.parse(JSON.stringify({ ...old, loanMode: 'all' })), defaults, {})
+  assert.equal(financing(saved, '280').loan, 430)
+})
 
 test('仲介不要はゼロで諸費用から除外', () => {
   const normal=purchaseCosts(2800000,2036185)

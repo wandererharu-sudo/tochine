@@ -1,12 +1,15 @@
 import { evaluate, formatYen, tsuboToM2, judge } from '../lib/tax'
 
-export default function PriceCompareCard({ point, area, unit, price, actualRosenka }) {
+export default function PriceCompareCard({ point, area, unit, price, actualRosenka, plannedPrice }) {
   const areaM2 = unit === 'tsubo' ? tsuboToM2(Number(area) || 0) : Number(area) || 0
   if (!(areaM2 > 0)) return null
   const ev = evaluate(point.p, areaM2, actualRosenka)
   const priceYen = (Number(price) || 0) * 10000
   const ratio = priceYen > 0 ? priceYen / ev.jika : null
   const j = ratio !== null ? judge(ratio) : null
+  const plannedYen = (Number(plannedPrice === '' || plannedPrice == null ? price : plannedPrice) || 0) * 10000
+  const usePlanned = plannedYen > 0 && plannedYen <= ev.jika
+  const simpleOffer = usePlanned ? plannedYen : Math.round(ev.jika * 0.8)
 
   return (
     <section className="card">
@@ -31,8 +34,8 @@ export default function PriceCompareCard({ point, area, unit, price, actualRosen
                 <td className="total">{formatYen(ev.jika)}</td>
               </tr>
               <tr>
-                <th>指値の簡易目安<span className="note">（土地値×0.8）</span></th>
-                <td className="total">{formatYen(Math.round(ev.jika * 0.8))}</td>
+                <th>指値の簡易目安<span className="note">{usePlanned ? '（土地値以下のため予定購入価格）' : '（土地値×0.8）'}</span></th>
+                <td className="total">{formatYen(simpleOffer)}</td>
               </tr>
               <tr>
                 <th>販売価格との差</th>

@@ -10,6 +10,8 @@ const result = await build({
       import assert from 'node:assert/strict';
       import QuickSummary from './src/components/QuickSummary.jsx';
       import InheritanceValueCard from './src/components/InheritanceValueCard.jsx';
+      import FinancingCard from './src/components/FinancingCard.jsx';
+      import TaxCard from './src/components/TaxCard.jsx';
       import DetailSection from './src/components/DetailSection.jsx';
       import ValuationCard from './src/components/ValuationCard.jsx';
       import PriceCompareCard from './src/components/PriceCompareCard.jsx';
@@ -23,10 +25,11 @@ const result = await build({
       const quick = {...shared, onAreaChange: noop, onUnitChange: noop, onPriceChange: noop, onSave: noop, onDetails: noop, canSave: true};
       export const markup = renderToStaticMarkup(<main className="app">
         <header className="app-head"><h1>土地値チェッカー</h1><p>改善版・画面構成の確認</p></header>
-        <p className="import-note">表示サンプルです。金額は架空の条件で、入力・保存はできません。下の詳細欄は開閉できます。公開サイトは未更新です。</p>
+        <p className="import-note">表示サンプルです。金額は架空の条件で、入力・保存はできません。下の詳細欄は開閉できます。</p>
         <fieldset disabled style={{border: 0, margin: 0, padding: 0, minWidth: 0}}>
           <QuickSummary {...quick} />
           <InheritanceValueCard {...shared} />
+          <FinancingCard price={shared.price} costs={costs} chintai={chintai} onChange={noop} onCostsChange={noop} />
           <DetailSection id="land-details" title="土地値を詳しく調べる" description="地図・参考地点・用途地域・路線価・評価額">
             <ValuationCard {...shared} years={{koji_year: 2026, chosa_year: 2025}} />
             <p className="hint">実際のアプリでは、ここに地図・用途地域・路線価図も表示します。</p>
@@ -37,6 +40,7 @@ const result = await build({
           </DetailSection>
           <DetailSection id="rental-details" title="貸した場合を見る" description="家賃・初期費用・借入・手取り・税額">
             <ChintaiCard {...shared} costs={costs} chintai={chintai} onChange={noop} onCostsChange={noop} />
+            <TaxCard {...shared} />
           </DetailSection>
         </fieldset>
         <p className="hint">連動の例：リフォーム100万円＋残置物10万円＋諸費用35万円＝初期費用145万円。解体費・安全代は賃貸の初期費用に含めません。</p>
@@ -60,6 +64,20 @@ const result = await build({
       const empty = renderToStaticMarkup(<InheritanceValueCard {...shared} area="" />);
       assert.ok(empty.includes('土地面積を入れると'));
       assert.ok(!empty.includes('NaN'));
+      const loanState = syncInitialCosts({ ...chintai, loanMode: 'all', shohiyo: '17', yachin: '' }, { reform: '150', zanchi: '0' });
+      const funding = renderToStaticMarkup(<FinancingCard price="280" chintai={loanState} costs={{reform:'150',zanchi:'0'}} onChange={noop} onCostsChange={noop} />);
+      assert.ok(funding.includes('447万円'));
+      assert.ok(funding.includes('value="150"'));
+      const rental = renderToStaticMarkup(<ChintaiCard {...shared} price="280" costs={{reform:'150',zanchi:'0'}} chintai={{...loanState,yachin:'5.5'}} onChange={noop} onCostsChange={noop} />);
+      assert.ok(rental.includes('value="447"'));
+      assert.ok(rental.includes('返済後の年間手取り'));
+      assert.ok(rental.includes('自己資金 0円'));
+      assert.ok(!markup.includes('更地・非住宅の場合'));
+      const offer = (plannedPrice) => renderToStaticMarkup(<PriceCompareCard {...shared} plannedPrice={plannedPrice} />);
+      assert.match(offer('550'), /指値の簡易目安[\\s\\S]*?550万円/);
+      assert.match(offer('600'), /指値の簡易目安[\\s\\S]*?600万円/);
+      assert.match(offer('700'), /指値の簡易目安[\\s\\S]*?480万円/);
+      assert.match(offer(''), /指値の簡易目安[\\s\\S]*?500万円/);
     `,
     resolveDir: process.cwd(), loader: 'jsx',
   },
