@@ -37,3 +37,13 @@ test('配布用リンクとソースが同じ結果を返す', () => {
   const text=fixture+'想定年間収入66万円\n仲介手数料不要'
   assert.deepEqual(run(text,decodeURIComponent(packed.slice('javascript:'.length))),run(text))
 })
+test('画面の文字に住所が無い時はHTMLの文字から拾う（HOME\'S）', () => {
+  let result
+  const html = '<th>住所</th>\n  <td>\n 愛知県半田市平和町2丁目 <a>地図を見る</a></td>\n価格\n190万円\n土地面積\t147.19㎡'
+  vm.runInNewContext(fs.readFileSync('scripts/bookmarklet.js','utf8'), {
+    document:{body:{innerText:'読み込み中'}, documentElement:{textContent:html.replace(/<[^>]+>/g,'')}},
+    location:{href:'https://toushi.homes.co.jp/bukkendetail/index/4776243/'}, window:{open:u=>{result=u; return true}}, alert:()=>{} })
+  const value = readImportParams(new URL(result).search)
+  assert.equal(value.addr, '愛知県半田市平和町2丁目')
+  assert.equal(value.price, '190'); assert.equal(value.area, '147.19')
+})

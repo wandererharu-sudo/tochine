@@ -2,7 +2,11 @@
 // 対応: SUUMO・アットホーム・楽待・健美家・HOME'S など「所在地／価格／土地面積」表記のあるページ全般
 // 注意: 正規表現は必ずリテラル（/.../）で書く。文字列連結で組むとバックスラッシュが落ちて壊れる（2026-09-11）
 (function () {
-  var t = document.body.innerText.replace(/　/g, ' ');
+  var ADDR = /((?:北海道|東京都|京都府|大阪府|[^\s\n]{1,3}県)[^\s\n【】\[\]()（）]{2,60})/;
+  var t = document.body.innerText;
+  // 画面の文字に住所が無い時（読み込み途中・別の窓で隠れている等）はHTMLの文字からも探す（2026-10-17 HOME'S）
+  if (!ADDR.test(t) && document.documentElement) t += '\n' + document.documentElement.textContent;
+  t = t.replace(/　/g, ' ');
   var SEP = /[\s:：]*\n?\s*/.source;
   function grab(labels, re) {
     for (var i = 0; i < labels.length; i++) {
@@ -11,7 +15,6 @@
     }
     return null;
   }
-  var ADDR = /((?:北海道|東京都|京都府|大阪府|[^\s\n]{1,3}県)[^\s\n【】\[\]()（）]{2,60})/;
   var addr = grab(['所在地', '住所', '所在', '物件所在地'], ADDR);
   if (!addr) { var m0 = t.match(ADDR); addr = m0 ? m0[1] : ''; }
   addr = addr.replace(/(地図|MAP|周辺|※|▶|＞|>).*$/, '').trim();
@@ -29,7 +32,7 @@
   else if (income) rent = String(Math.round(Number(income[1].replace(/,/g, '')) / (income[2] === '円' ? 10000 : 1) / 12 * 10000) / 10000);
   // 関連物件一覧を判定対象に混ぜない。
   var brokerage = /仲介手数料[\s:：]*(?:は[\s]*)?(?:不要|無料|なし|無し|0\s*円|０\s*円)/.test(detailsText) ? 'none' : '';
-  if (!addr) { alert('住所が見つかりませんでした。土地値チェッカーを開くので住所を入れてください。'); }
+  if (!addr) { alert('住所が見つかりませんでした。土地値チェッカーを開くので住所を入れてください。\n[診断] 文字数' + t.length + ' 住所欄' + t.indexOf('住所') + ' 県' + t.indexOf('県')); }
   var u = 'https://wandererharu-sudo.github.io/tochine/?addr=' + encodeURIComponent(addr) +
     '&price=' + encodeURIComponent(man) + '&area=' + encodeURIComponent(area) + '&unit=m2' +
     '&rent=' + encodeURIComponent(rent) + '&brokerage=' + encodeURIComponent(brokerage) +
